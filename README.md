@@ -340,7 +340,7 @@ The config panel (`/fk config`) includes 7 tabs:
 
 - **Game Version**: WoW TBC Classic Anniversary Edition (2.5.5)
 - **Interface**: 20505
-- **Addon Version**: 1.2.1
+- **Addon Version**: 1.2.2
 
 ## Known Limitations
 

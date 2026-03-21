@@ -1,5 +1,10 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.2.2
+
+### Meta
+- Switched to CurseForge Automatic Packaging (removed GitHub Actions workflow)
+
 ## v1.2.1
 
 ### Meta
