@@ -165,17 +165,18 @@ function Alerts:OnCastStart()
     alertState.watching = false
     alertState.splashDetected = false
 
-    -- Boost sound for better splash detection
-    self:BoostFishingSound()
-
     FK:Debug("Alert: Cast started")
 end
 
 function Alerts:OnBobberLanded()
-    -- Bobber is now in the water, start watching for loot
+    -- Bobber is now in the water, start watching for loot.
+    -- Boost sounds here (matching BetterFishing's CHANNEL_START timing)
+    -- so we only boost when the bobber is actually in the water,
+    -- not during the cast animation.
     alertState.watching = true
     alertState.splashDetected = false
 
+    self:BoostFishingSound()
     self:ShowTimer()
 
     FK:Debug("Alert: Bobber landed, watching for catch")
@@ -185,21 +186,22 @@ function Alerts:OnBobberLanded()
 end
 
 function Alerts:OnFishingEnd()
+    -- Restore sounds immediately when the channel stops (matching
+    -- BetterFishing's CHANNEL_STOP restore timing).
     alertState.watching = false
 
+    self:RestoreFishingSound()
     self:HideTimer()
     self:StopWatching()
 
-    -- NOTE: Do NOT restore sound here - this fires on channel stop
-    -- which happens BEFORE loot window. Sound restore happens in
-    -- OnFishingComplete() called from LOOT_CLOSED or timeout.
-    FK:Debug("Alert: Fishing ended")
+    FK:Debug("Alert: Fishing ended, sound restored")
 end
 
--- Called when fishing is truly done (loot closed or timeout)
+-- Called when fishing is truly done (loot closed or timeout).
+-- RestoreFishingSound is a no-op if already restored in OnFishingEnd.
 function Alerts:OnFishingComplete()
     self:RestoreFishingSound()
-    FK:Debug("Alert: Fishing complete, sound restored")
+    FK:Debug("Alert: Fishing complete")
 end
 
 -- ============================================================================
