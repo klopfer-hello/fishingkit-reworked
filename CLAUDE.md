@@ -1,0 +1,126 @@
+# FishingKit - CLAUDE.md
+
+## Project Overview
+
+FishingKit is a World of Warcraft addon for **TBC Classic Anniversary** (interface version 20504/20505, game version 2.5.5). It provides fishing quality-of-life features: session statistics, catch tracking, fishing alerts, gear/lure management, and pool location recording.
+
+The addon uses a global namespace `FK` (also `FishingKit`) populated via the addon vararg `local ADDON_NAME, FK = ...`.
+
+## File Structure
+
+| File | Purpose |
+|---|---|
+| [Core.lua](Core.lua) | Main framework: event registration, state machine, module coordination, C_Container shim |
+| [Statistics.lua](Statistics.lua) | Session stats, catch recording, loot event handling |
+| [Alerts.lua](Alerts.lua) | Sound/visual alerts for fish bites |
+| [Config.lua](Config.lua) | Settings persistence and defaults |
+| [Database.lua](Database.lua) | Fish/item classification (fish vs junk vs special) |
+| [Equipment.lua](Equipment.lua) | Fishing gear and lure management |
+| [UI.lua](UI.lua) | Addon UI frames |
+| [Pools.lua](Pools.lua) | Fishing pool location tracking |
+| [PoolData.lua](PoolData.lua) | Pool name/location data |
+| [Navigation.lua](Navigation.lua) | Map/minimap utilities |
+
+## Game Version Notes (Critical)
+
+- **TBC Classic Anniversary uses the `C_Container` namespace** — legacy globals like `GetContainerNumSlots`, `GetContainerItemLink`, `GetContainerItemInfo` may not exist.
+- A compatibility shim in [Core.lua lines 17-33](Core.lua) maps legacy globals to `C_Container` equivalents.
+- `C_Container.GetContainerItemInfo` returns a **table** (fields: `iconFileID`, `stackCount`, `isLocked`, `quality`, etc.) — the shim wraps it to return legacy multiple-return-value style.
+- **`LOOT_READY` event is available** in TBC Classic Anniversary and fires before auto-loot processes items.
+- **`IsFishingLoot()`** is a Blizzard built-in API available in TBC Classic Anniversary that returns `true` when the current loot source is a fishing bobber.
+- **`GetLootSlotInfo(slot)`** returns `texture, name, count, quality, locked` (5 values, no `currencyID` — that is a Retail-only return value).
+- With auto-loot enabled, `GetNumLootItems()` returns 0 in `LOOT_OPENED` because items are already processed. Use `LOOT_READY` instead.
+
+## State Machine (Core.lua)
+
+```
+FK.State = {
+    isFishing        -- true while channel is active
+    castStartTime    -- GetTime() at cast start, nil otherwise
+    castGen          -- increments each cast, used to discard stale timer callbacks
+    waitingForLoot   -- true from CHANNEL_STOP until LOOT_CLOSED (or 1s timeout)
+    lootCastGen      -- castGen value at CHANNEL_STOP time
+    bobberGUID       -- GUID of the fishing bobber unit
+    currentZone      -- current zone name
+    currentSubZone   -- current subzone name
+    hasLure          -- whether a lure is active
+    lureExpireTime   -- when the lure expires
+    fishingSkill     -- current fishing skill
+    fishingSkillModifier
+    sessionStartTime
+    sessionActive
+    combatSwapQueued
+}
+```
+
+Key state transitions:
+- `SPELLCAST_START` → `isFishing = true`, increment `castGen`, clear `waitingForLoot`
+- `CHANNEL_STOP` → `waitingForLoot = true`, save `lootCastGen`, start 1s timeout
+- 1s timeout (no loot) → reset `isFishing`, `waitingForLoot` (handles "fish got away")
+- `LOOT_CLOSED` → reset `isFishing`, `waitingForLoot` (if `castGen` matches `lootCastGen`)
+
+## Catch Detection (Current Approach)
+
+**Event**: `LOOT_READY` + `IsFishingLoot()` — the approach used by FishingBuddy.
+
+```lua
+-- Core.lua
+eventHandlers.LOOT_READY = function()
+    if IsFishingLoot and IsFishingLoot() then
+        FK.Statistics:OnLootReady()
+    end
+end
+
+-- Statistics.lua
+function Stats:OnLootReady()
+    local numItems = GetNumLootItems()
+    for i = 1, numItems do
+        local texture, name, count, quality = GetLootSlotInfo(i)
+        local link = GetLootSlotLink(i)
+        self:RecordCatch({ itemID, name, quantity=count, quality, link })
+    end
+end
+```
+
+**Why `LOOT_READY` not `LOOT_OPENED`**: With auto-loot, `LOOT_OPENED` fires after items are already taken — `GetNumLootItems()` returns 0. `LOOT_READY` fires before auto-loot runs, so the loot table is always populated.
+
+**Why not bag diff**: Previous approach (snapshotting bags in `CHANNEL_STOP`, diffing in `LOOT_CLOSED`) was intermittent because: (a) if the player took >1 second to click after fish bite, the 1-second timeout reset the state before `LOOT_CLOSED` fired; (b) timing of `CHANNEL_STOP` relative to fish bite vs player click is unreliable in TBC 2.5.5.
+
+## Reference Addon: FishingBuddy
+
+FishingBuddy is located at `d:\Games\World of Warcraft\_anniversary_\Interface\AddOns\FishingBuddy`. **Do not modify it** — it exists solely as a reference for correct TBC Classic API usage.
+
+Key files to reference:
+- `Libs/LibFishing-1.0/LibFishing-1.0.lua` — core fishing detection logic
+- `FishingBuddy.lua` — main event handling, uses `LOOT_READY` + `IsFishingLoot()` + `GetLootInfo()`
+
+## Bugs Fixed (Commit History)
+
+| Commit | Bug | Fix |
+|---|---|---|
+| `88c695a` | `trackLoot` guard blocked loot scanning when only `trackStats` was set | Changed `OnLootOpened`/`OnLootSlotCleared` guard to `trackStats` |
+| `790ec0a` | Quality always 0 due to wrong `GetLootSlotInfo` return mapping | Removed extra `currencyID` variable (Retail-only return value) |
+| `b74434b` | `fishCaught` and gold values not persisted across sessions | `SaveSession` now includes `fishCaught`, `vendorCopper`, `ahCopper`, `blendedCopper` |
+| `1f1318f` | Statistics panel showed session total gold instead of per-hour rate | `vendorGold` display uses `session.vendorPerHour` not `session.vendorCopper` |
+| `06132e1` | Catches = 0 with auto-loot (bag diff approach, intermittent) | Replaced `OnLootOpened` loot window scan with bag snapshot + diff |
+| `d6ab687` | Bag diff intermittent (player >1s to click, timeout cleared state) | Replaced bag diff with `LOOT_READY` + `IsFishingLoot()` |
+
+## Important API Behaviour (TBC Classic 2.5.5)
+
+- `GetLootSlotInfo(slot)` → `texture, name, count, quality, locked` (5 values)
+- `GetLootSlotLink(slot)` → item hyperlink string
+- `GetNumLootItems()` → number of items (valid at `LOOT_READY`, may be 0 at `LOOT_OPENED` with auto-loot)
+- `IsFishingLoot()` → `true` if loot source is fishing bobber
+- `LOOT_READY` → fires when loot data is ready, before auto-loot runs
+- `LOOT_OPENED` → fires when loot window opens (after auto-loot with auto-loot enabled)
+- `UNIT_SPELLCAST_CHANNEL_STOP` fires when the fishing channel ends — in TBC Classic this fires at fish bite time, not at player click time
+- `C_Timer.After(delay, func)` is available
+- Item links follow pattern `item:(%d+)` for extracting itemID
+
+## Coding Conventions
+
+- Module pattern: `local Stats = {}; FK.Statistics = Stats`
+- Debug logging: `FK:Debug("message")`
+- Settings access: `FK.db.settings.trackStats` (persisted SavedVariables)
+- Session data: local `sessionData` table in Statistics.lua, reset on `StartSession()`
+- All event handlers registered via `local events = { "EVENT_NAME", ... }` table and dispatched through `eventHandlers.EVENT_NAME = function(...) end`
