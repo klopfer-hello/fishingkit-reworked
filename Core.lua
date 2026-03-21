@@ -561,7 +561,6 @@ local events = {
     -- Loot events
     "LOOT_READY",
     "LOOT_OPENED",
-    "LOOT_SLOT_CLEARED",
     "LOOT_CLOSED",
 
     -- Location events
@@ -910,17 +909,6 @@ eventHandlers.LOOT_OPENED = function()
         -- Extend double-click window through the loot process
         if FK.UI and FK.UI.ExtendDoubleClick then
             FK.UI:ExtendDoubleClick()
-        end
-    end
-end
-
-eventHandlers.LOOT_SLOT_CLEARED = function(slot)
-    if FK.State.isFishing or FK.State.waitingForLoot then
-        FK:Debug("Loot slot cleared: " .. tostring(slot))
-
-        -- Track individual item looted
-        if FK.Statistics and FK.Statistics.OnLootSlotCleared then
-            FK.Statistics:OnLootSlotCleared(slot)
         end
     end
 end

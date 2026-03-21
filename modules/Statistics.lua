@@ -37,10 +37,6 @@ local sessionData = {
     fishingPoleEquipTime = nil,  -- GetTime() when pole was last equipped, nil when unequipped
 }
 
--- Pending loot tracking (for when loot window is open)
-local pendingLoot = {}
-
-
 -- Milestone thresholds for celebration
 local MILESTONES = { 100, 250, 500, 1000, 2500, 5000, 10000 }
 
@@ -184,15 +180,9 @@ function Stats:OnLootReady()
         end
     end
 
-    pendingLoot = {}
-end
-
-function Stats:OnLootSlotCleared(slot)
-    -- Catch detection is now handled in OnLootReady; nothing to do here.
 end
 
 function Stats:OnLootClosed()
-    pendingLoot = {}
 end
 
 function Stats:RecordCatch(lootData)
