@@ -1,0 +1,41 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\FrameXML\UI.xsd">
+	<Frame name="FishingKitWorldMapPinTemplate" hidden="true" enableMouse="true" mixin="FishingKitWorldMapPinMixin" virtual="true">
+		<Size x="12" y="12"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="border" setAllPoints="true"/>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture parentKey="dot">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="2" y="-2"/>
+						<Anchor point="BOTTOMRIGHT" x="-2" y="2"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+	</Frame>
+	<!-- Route waypoint pin (invisible, just for anchoring lines) -->
+	<Frame name="FishingKitRoutePinTemplate" mixin="FishingKitRoutePinMixin" enableMouse="false" virtual="true">
+		<Size x="14" y="14"/>
+		<Layers>
+			<Layer level="OVERLAY">
+				<FontString parentKey="Number" inherits="GameFontNormalSmall">
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Frame>
+	<!-- Route line connection between two pins -->
+	<Frame name="FishingKitRouteConnectionTemplate" mixin="FishingKitRouteConnectionMixin" ignoreParentScale="true" virtual="true">
+		<Size x="64" y="64"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Line parentKey="Line"/>
+			</Layer>
+		</Layers>
+	</Frame>
+</Ui>

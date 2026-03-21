@@ -1,0 +1,24 @@
+## Interface: 20504
+## Title: |cFF00D1FFFishingKit|r - TBC Anniversary Edition
+## Notes: The ultimate fishing companion for TBC Anniversary. Tracks stats, detects pools, manages gear, and enhances your fishing experience.
+## Author: For Fun Studios ( FFS )
+## Version: 1.0.11
+## SavedVariables: FishingKitDB
+## SavedVariablesPerCharacter: FishingKitCharDB
+
+# Core Systems
+Core.lua
+Database.lua
+Statistics.lua
+
+# Features
+FishingKit.xml
+Equipment.lua
+PoolData.lua
+Pools.lua
+Navigation.lua
+Alerts.lua
+
+# Interface
+UI.lua
+Config.lua

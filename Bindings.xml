@@ -1,0 +1,26 @@
+<Bindings>
+    <Binding name="FISHINGKIT_TOGGLE">
+        FishingKit.UI:Toggle()
+    </Binding>
+    <Binding name="FISHINGKIT_GEARSWAP">
+        if FishingKit.Equipment:HasFishingPole() then
+            FishingKit.Equipment:EquipNormalGear()
+        else
+            FishingKit.Equipment:EquipFishingGear()
+        end
+    </Binding>
+    <Binding name="FISHINGKIT_LURE">
+        local lure = FishingKit.Equipment:GetBestAvailableLure()
+        if lure then
+            FishingKit:Print("Apply lure using the Lure button (secure action required).", FishingKit.Colors.info)
+        else
+            FishingKit:Print("No lures in your bags.", FishingKit.Colors.warning)
+        end
+    </Binding>
+    <Binding name="FISHINGKIT_STATS">
+        FishingKit.Statistics:ToggleStatsPanel()
+    </Binding>
+    <Binding name="FISHINGKIT_CONFIG">
+        FishingKit.Config:Toggle()
+    </Binding>
+</Bindings>
