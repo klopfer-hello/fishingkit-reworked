@@ -36,8 +36,10 @@ The addon uses a global namespace `FK` (also `FishingKit`) populated via the add
 ```
 FK.State = {
     isFishing        -- true while channel is active
-    castStartTime    -- GetTime() at cast start, nil otherwise
-    castGen          -- increments each cast, used to discard stale timer callbacks
+    castStartTime    -- GetTime() when bobber lands (CHANNEL_START), reset on re-cast; nil when not fishing
+    castGen          -- increments each cast (SPELLCAST_START), used to discard stale timer callbacks
+    channelCastGen   -- snapshot of castGen at CHANNEL_START; used in CHANNEL_STOP to detect stale re-cast
+    channelStarted   -- true once CHANNEL_START has fired (bobber is in water); false on new SPELLCAST_START
     waitingForLoot   -- true from CHANNEL_STOP until LOOT_CLOSED (or 1s timeout)
     lootCastGen      -- castGen value at CHANNEL_STOP time
     bobberGUID       -- GUID of the fishing bobber unit
@@ -54,9 +56,11 @@ FK.State = {
 ```
 
 Key state transitions:
-- `SPELLCAST_START` → `isFishing = true`, increment `castGen`, clear `waitingForLoot`
-- `CHANNEL_STOP` → `waitingForLoot = true`, save `lootCastGen`, start 1s timeout
-- 1s timeout (no loot) → reset `isFishing`, `waitingForLoot` (handles "fish got away")
+- `SPELLCAST_START` → `isFishing = true`, increment `castGen`, `channelStarted = false`, clear `waitingForLoot`
+- `CHANNEL_START` → `channelStarted = true`, snapshot `channelCastGen = castGen`, reset `castStartTime`
+- `CHANNEL_STOP` (if `channelCastGen == castGen`) → `waitingForLoot = true`, save `lootCastGen`, start 1s timeout
+- `CHANNEL_STOP` (if `channelCastGen != castGen`) → ignored (stale event from old bobber on re-cast)
+- 1s timeout (no loot, `UnitChannelInfo == nil`) → reset `isFishing`, `waitingForLoot` (handles "fish got away")
 - `LOOT_CLOSED` → reset `isFishing`, `waitingForLoot` (if `castGen` matches `lootCastGen`)
 
 ## Catch Detection (Current Approach)
@@ -104,6 +108,8 @@ Key files to reference:
 | `1f1318f` | Statistics panel showed session total gold instead of per-hour rate | `vendorGold` display uses `session.vendorPerHour` not `session.vendorCopper` |
 | `06132e1` | Catches = 0 with auto-loot (bag diff approach, intermittent) | Replaced `OnLootOpened` loot window scan with bag snapshot + diff |
 | `d6ab687` | Bag diff intermittent (player >1s to click, timeout cleared state) | Replaced bag diff with `LOOT_READY` + `IsFishingLoot()` |
+| `f347b47` | Sound permanently boosted / re-cast triggered double boost+restore | `BoostFishingSound` idempotent via guard; `RestoreFishingSound` only called from `OnFishingComplete` |
+| `9b98408` | Cast timer not reset on re-cast | `castStartTime` set unconditionally at `CHANNEL_START` (was conditional nil-check) |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 
