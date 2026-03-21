@@ -193,6 +193,14 @@ All credit for the original work goes to the original author. This fork exists p
 - Supports: Big-mouth Clam, Thick-Shelled Clam, Jaggal Clam, Waterlogged Crate, Inscribed Scrollcase, Curious Crate, and more
 - **Auto-open**: automatically opens fishing crates and scroll cases after each loot window closes (toggle in Automation tab)
 
+### 📅 Shattrath Fishing Daily Tracker
+- Tracks the 5 rotating Outland fishing daily quests (Old Man Barlo, Silmyr Lake, Terokkar Forest)
+- Shows completion status for each quest: Done, In Progress, or not offered today
+- Toggle the panel with `/fk daily` or the **Show Daily Tracker** button in Config > Auto
+- `/fk daily print` prints the quest list to chat
+- Optional login reminder when an active daily is in your quest log
+- Panel updates live on quest turn-in
+
 ### 🎯 Fishing Goals
 - Set session catch targets via `/fk goal <fish name> <count>`
 - Track progress on the idle status line with color-coded display
@@ -261,6 +269,8 @@ All credit for the original work goes to the original author. This fork exists p
 | `/fk release <fish>` | Add fish to auto-delete list |
 | `/fk release` | List release items |
 | `/fk release clear` | Clear release list |
+| `/fk daily` | Toggle fishing daily quest tracker panel |
+| `/fk daily print` | Print daily quest status to chat |
 | `/fk backup` | Force an immediate backup |
 | `/fk backup restore` | Restore from last backup (requires /reload) |
 | `/fk backup info` | Show last backup timestamp and age |
@@ -296,8 +306,10 @@ The config panel (`/fk config`) includes 7 tabs:
 ### Auto
 - **CASTING**: Double-right-click to cast
 - **GEAR**: Auto-save normal gear when equipping fishing gear; Auto swap weapons in combat, restore pole after
+- **LURE**: Auto-reapply best lure after each catch (when missing or expired)
 - **LOOT**: Auto-open crates and scroll cases after fishing
 - **TRACKING**: Auto-enable Find Fish when equipping fishing gear
+- **DAILY QUESTS**: Reminder on login when an Outland fishing daily is in your quest log; Show Daily Tracker button
 
 ### Stats
 - Track stats on/off, track loot history on/off
@@ -328,7 +340,7 @@ The config panel (`/fk config`) includes 7 tabs:
 
 - **Game Version**: WoW TBC Classic Anniversary Edition (2.5.5)
 - **Interface**: 20505
-- **Addon Version**: 1.1.0
+- **Addon Version**: 1.2.0
 
 ## Known Limitations
 

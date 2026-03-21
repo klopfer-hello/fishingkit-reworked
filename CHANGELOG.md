@@ -1,5 +1,26 @@
 # FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.2.0
+
+### New Features
+
+#### Shattrath Fishing Daily Tracker
+- Tracks the 5 rotating Outland fishing daily quests offered by Old Man Barlo (Silmyr Lake, Terokkar Forest)
+- Quests tracked: Crocolisks in the City, Fish Don't Leave Footprints, Felblood Fillet, Shrimpin' Ain't Easy, The One That Got Away
+- Shows completion status for each quest: **Done** (green), **In Progress** (cyan), or **—** (dim, not offered today)
+- Toggle the panel via `/fk daily` or the **Show Daily Tracker** button in Config > Auto
+- `/fk daily print` prints the status to chat
+- Login reminder: if an active fishing daily is in the quest log, prints a hint with the required fish and zone (toggle in Config > Auto > DAILY QUESTS)
+- Panel updates live when a daily quest is turned in (`QUEST_TURNED_IN` event)
+- New module: `modules/DailyQuests.lua`
+
+#### Auto-Lure Reapply
+- After each catch (on `LOOT_CLOSED`), FishingKit checks whether the fishing pole has an active lure
+- If no lure is active, or the current lure expires within 5 seconds, the best lure found in bags is applied automatically via `UseContainerItem`
+- Prints a confirmation message with the lure name and bonus on successful application
+- Toggle on/off in **Config > Auto > LURE** section
+- Files changed: `Core.lua`, `modules/Equipment.lua`, `modules/Config.lua`
+
 ## v1.1.0
 
 ### New Features

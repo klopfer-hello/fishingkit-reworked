@@ -34,7 +34,7 @@ if not GetContainerNumSlots and C_Container then
 end
 
 -- Version info
-FK.VERSION = "1.0.12"
+FK.VERSION = "1.2.0"
 FK.BUILD = "TBC-Anniversary"
 
 -- Addon state
@@ -104,6 +104,7 @@ local defaultDB = {
         -- Equipment settings
         autoEquip = false,
         autoLure = false,
+        autoLureReapply = false,
         autoCombatSwap = true,
         autoOpenContainers = true,
 
@@ -127,6 +128,9 @@ local defaultDB = {
 
         -- Cycle fish alerts
         cycleFishAlerts = true,
+
+        -- Daily quest tracker
+        dailyQuestReminder = true,
 
         -- Statistics settings
         trackStats = true,
@@ -553,6 +557,10 @@ local function InitializeAddon()
         FK.Config:Initialize()
     end
 
+    if FK.DailyQuests and FK.DailyQuests.Initialize then
+        FK.DailyQuests:Initialize()
+    end
+
     FK.initialized = true
     FK:Print("Loaded! Type " .. FK.Colors.highlight .. "/fk|r for options.", FK.Colors.success)
 
@@ -615,6 +623,9 @@ local events = {
     "AUCTION_HOUSE_SHOW",
     "AUCTION_HOUSE_CLOSED",
     "AUCTION_ITEM_LIST_UPDATE",
+
+    -- Daily quest tracking
+    "QUEST_TURNED_IN",
 }
 
 for _, event in ipairs(events) do
@@ -647,6 +658,13 @@ eventHandlers.PLAYER_ENTERING_WORLD = function()
         FK.State.sessionStartTime = GetTime()
         FK.State.sessionActive = true
     end
+
+    -- Remind player of active daily fishing quest (delayed so UI is ready)
+    C_Timer.After(3, function()
+        if FK.DailyQuests and FK.DailyQuests.CheckLoginReminder then
+            FK.DailyQuests:CheckLoginReminder()
+        end
+    end)
 end
 
 eventHandlers.PLAYER_LOGOUT = function()
@@ -1016,6 +1034,19 @@ eventHandlers.LOOT_CLOSED = function()
                 end
             end)
         end
+
+        -- Auto-reapply lure if enabled and lure is missing/expired
+        C_Timer.After(0.6, function()
+            if FK.Equipment and FK.Equipment.TryAutoReapplyLure then
+                FK.Equipment:TryAutoReapplyLure()
+            end
+        end)
+    end
+end
+
+eventHandlers.QUEST_TURNED_IN = function(questName, questID)
+    if FK.DailyQuests and FK.DailyQuests.OnQuestTurnedIn then
+        FK.DailyQuests:OnQuestTurnedIn(questID)
     end
 end
 
@@ -2011,6 +2042,15 @@ SlashCmdList["FISHINGKIT"] = function(msg)
             FK:CreateBackup()
         end
 
+    elseif cmd == "daily" then
+        if FK.DailyQuests then
+            if args == "print" then
+                FK.DailyQuests:PrintStatus()
+            else
+                FK.DailyQuests:Toggle()
+            end
+        end
+
     elseif cmd == "debug" then
         FK.debugMode = not FK.debugMode
         FK:Print("Debug mode: " .. (FK.debugMode and "ON" or "OFF"), FK.Colors.info)
@@ -2041,6 +2081,8 @@ SlashCmdList["FISHINGKIT"] = function(msg)
         print("  /fk backup - Force a backup now")
         print("  /fk backup restore - Restore from last backup")
         print("  /fk backup info - Show backup timestamp")
+        print("  /fk daily - Toggle fishing daily quest tracker")
+        print("  /fk daily print - Print daily quest status to chat")
 
     else
         FK:Print("Unknown command. Type /fk help for options.", FK.Colors.warning)

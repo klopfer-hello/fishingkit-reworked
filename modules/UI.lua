@@ -1939,49 +1939,102 @@ GameTooltip:HookScript("OnTooltipSetItem", OnTooltipSetItem)
 -- ============================================================================
 -- Double-Right-Click Casting (ZenFishing-style)
 -- ============================================================================
--- Double-click = cast Fishing. Single click = normal WoW behavior.
--- That's it. No auto-recast. Clean and simple.
+-- Double-click = cast Fishing (or apply lure first if auto-lure is on).
+-- Uses GLOBAL_MOUSE_DOWN + SecureActionButton + SetOverrideBindingClick,
+-- mirroring the FishingBuddy approach so the binding fires on the same click.
 
 local dcFrame = CreateFrame("Frame", "FishingKitDCFrame", UIParent)
 local dcLastClickTime = 0
 local dcHooked = false
+local dcSABtn = nil
+
+local function GetDCSAButton()
+    if dcSABtn then return dcSABtn end
+    dcSABtn = CreateFrame("Button", "FishingKitSAButton", UIParent, "SecureActionButtonTemplate")
+    dcSABtn:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, 0)
+    dcSABtn:SetFrameStrata("LOW")
+    dcSABtn:SetSize(1, 1)
+    dcSABtn:Show()
+    dcSABtn:RegisterForClicks("RightButtonDown")
+    dcSABtn:SetScript("PostClick", function()
+        ClearOverrideBindings(dcSABtn)
+        for _, attr in ipairs({"type", "spell", "macrotext", "macro"}) do
+            dcSABtn:SetAttribute(attr, nil)
+        end
+    end)
+    return dcSABtn
+end
+
+local function DCInvoke()
+    local btn = GetDCSAButton()
+    -- Clear previous attributes
+    for _, attr in ipairs({"type", "spell", "macrotext", "macro"}) do
+        btn:SetAttribute(attr, nil)
+    end
+
+    -- If auto-lure is enabled, no lure active, and we have a lure in bags -- apply it first
+    local needLure = false
+    if FK.db and FK.db.settings.autoLureReapply and FK.Equipment then
+        local hasMainHandEnchant = GetWeaponEnchantInfo()
+        if not hasMainHandEnchant then
+            local bestLure = FK.Equipment:GetBestAvailableLure()
+            if bestLure then
+                needLure = true
+                local macrotext = "/use " .. bestLure.bag .. " " .. bestLure.slot .. "\n/use 16"
+                btn:SetAttribute("type", "macro")
+                btn:SetAttribute("macrotext", macrotext)
+                FK:Debug("DCInvoke: applying lure " .. bestLure.name .. " via macro")
+            end
+        end
+    end
+
+    if not needLure then
+        btn:SetAttribute("type", "spell")
+        btn:SetAttribute("spell", FK.FishingSpellName or "Fishing")
+        FK:Debug("DCInvoke: casting Fishing")
+    end
+
+    SetOverrideBindingClick(btn, true, "BUTTON2", "FishingKitSAButton")
+end
 
 function UI:SetupDoubleClickCast()
     if dcHooked then return end
     dcHooked = true
 
-    WorldFrame:HookScript("OnMouseDown", function(_, button)
-        if not FK.db or not FK.db.settings.doubleClickCast then return end
-        if button ~= "RightButton" then return end
-        if InCombatLockdown() then return end
-        if not FK.Equipment or not FK.Equipment:HasFishingPole() then return end
+    GetDCSAButton()  -- create early so the frame exists
 
-        -- Don't fire during active loot window
-        if LootFrame and LootFrame:IsShown() then return end
-
-        local now = GetTime()
-        local delay = now - dcLastClickTime
-        dcLastClickTime = now
-
-        if delay > 0.05 and delay < 0.4 then
-            FK:Debug("Double-click detected (delay=" .. string.format("%.3f", delay) .. ")")
-
-            if IsMouselooking() then
-                MouselookStop()
-            end
-
-            SetOverrideBindingSpell(dcFrame, true, "BUTTON2", FK.FishingSpellName or "Fishing")
-        else
-            -- Single click — clear any stale binding so normal interaction works
-            ClearOverrideBindings(dcFrame)
-        end
-    end)
-
-    -- Clear on combat
+    dcFrame:RegisterEvent("GLOBAL_MOUSE_DOWN")
     dcFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-    dcFrame:SetScript("OnEvent", function(self, event)
-        ClearOverrideBindings(dcFrame)
-        dcLastClickTime = 0
+    dcFrame:SetScript("OnEvent", function(self, event, arg1)
+        if event == "GLOBAL_MOUSE_DOWN" then
+            if not FK.db or not FK.db.settings.doubleClickCast then return end
+            if arg1 ~= "RightButton" then return end
+            if InCombatLockdown() then return end
+            if not FK.Equipment or not FK.Equipment:HasFishingPole() then return end
+
+            -- Don't fire during active loot window
+            if LootFrame and LootFrame:IsShown() then return end
+
+            local now = GetTime()
+            local delay = now - dcLastClickTime
+            dcLastClickTime = now
+
+            if delay > 0.05 and delay < 0.4 then
+                FK:Debug("Double-click detected (delay=" .. string.format("%.3f", delay) .. ")")
+
+                if IsMouselooking() then
+                    MouselookStop()
+                end
+
+                DCInvoke()
+            else
+                -- Single click -- clear any stale binding
+                if dcSABtn then ClearOverrideBindings(dcSABtn) end
+            end
+        elseif event == "PLAYER_REGEN_DISABLED" then
+            if dcSABtn then ClearOverrideBindings(dcSABtn) end
+            dcLastClickTime = 0
+        end
     end)
 
     FK:Debug("Double-click casting setup complete")
