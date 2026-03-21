@@ -27,11 +27,52 @@ local uiState = {
 }
 
 -- UI Constants
-local FRAME_WIDTH = 300
-local FRAME_HEIGHT = 356  -- Height for all elements (expanded)
-local FRAME_HEIGHT_COLLAPSED = 156  -- Height when collapsed (cast bar + buttons + footer)
-local PADDING = 8
-local ROW_HEIGHT = 16
+local FRAME_WIDTH           = 290
+local FRAME_HEIGHT          = 352   -- expanded
+local FRAME_HEIGHT_COLLAPSED = 168  -- collapsed (title + cast + buttons + footer)
+local PADDING               = 10
+local ROW_HEIGHT            = 16
+
+-- Design palette
+local D = {
+    bg       = {0.04, 0.04, 0.06},  bgA  = 0.92,
+    border   = {0.18, 0.18, 0.23},  borA = 0.80,
+    divider  = {0.14, 0.14, 0.18},  divA = 0.90,
+    accent   = {0.28, 0.74, 0.97},              -- soft cyan
+    label    = {0.40, 0.40, 0.45},              -- muted label text
+    value    = {0.82, 0.84, 0.88},              -- bright value text
+    success  = {0.26, 0.76, 0.42},              -- green
+    warn     = {0.95, 0.64, 0.10},              -- amber
+    danger   = {0.90, 0.30, 0.30},              -- red
+    gold     = {1.00, 0.82, 0.00},              -- WoW gold
+    barBg    = {0.07, 0.07, 0.09},
+}
+
+-- Helper: draw a 1 px horizontal separator line
+local function AddDivider(frame, yPos)
+    local t = frame:CreateTexture(nil, "ARTWORK")
+    t:SetHeight(1)
+    t:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING, yPos)
+    t:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, yPos)
+    t:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
+    return t
+end
+
+-- Helper: draw a 1 px border around a button using 4 edge textures
+local function AddThinBorder(btn, r, g, b, a)
+    local top = btn:CreateTexture(nil, "OVERLAY")
+    top:SetPoint("TOPLEFT"); top:SetPoint("TOPRIGHT"); top:SetHeight(1)
+    top:SetColorTexture(r, g, b, a)
+    local bot = btn:CreateTexture(nil, "OVERLAY")
+    bot:SetPoint("BOTTOMLEFT"); bot:SetPoint("BOTTOMRIGHT"); bot:SetHeight(1)
+    bot:SetColorTexture(r, g, b, a)
+    local lft = btn:CreateTexture(nil, "OVERLAY")
+    lft:SetPoint("TOPLEFT"); lft:SetPoint("BOTTOMLEFT"); lft:SetWidth(1)
+    lft:SetColorTexture(r, g, b, a)
+    local rgt = btn:CreateTexture(nil, "OVERLAY")
+    rgt:SetPoint("TOPRIGHT"); rgt:SetPoint("BOTTOMRIGHT"); rgt:SetWidth(1)
+    rgt:SetColorTexture(r, g, b, a)
+end
 
 -- Openable containers caught while fishing (clams, crates, etc.)
 local OPENABLE_ITEMS = {
@@ -101,61 +142,45 @@ function UI:CreateMainFrame()
     frame:SetFrameStrata("MEDIUM")
     frame:SetClampedToScreen(true)
 
-    -- Backdrop
-    local backdropInfo = {
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 16,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 }
-    }
-
+    -- Clean dark backdrop with thin tooltip-style border
     if frame.SetBackdrop then
-        frame:SetBackdrop(backdropInfo)
-        frame:SetBackdropColor(0, 0, 0, 0.9)
-        frame:SetBackdropBorderColor(0.3, 0.6, 1.0, 0.8)
+        frame:SetBackdrop({
+            bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 16, edgeSize = 8,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+        frame:SetBackdropColor(D.bg[1], D.bg[2], D.bg[3], D.bgA)
+        frame:SetBackdropBorderColor(D.border[1], D.border[2], D.border[3], D.borA)
     else
         local bg = frame:CreateTexture(nil, "BACKGROUND")
         bg:SetAllPoints()
-        bg:SetColorTexture(0, 0, 0, 0.9)
+        bg:SetColorTexture(D.bg[1], D.bg[2], D.bg[3], D.bgA)
     end
 
-    -- Title bar
+    -- Title bar (no fill — just text + separator line)
     local titleBar = CreateFrame("Frame", nil, frame)
     titleBar:SetHeight(22)
-    titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -6)
-    titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -6, -6)
-
-    local titleBg = titleBar:CreateTexture(nil, "BACKGROUND")
-    titleBg:SetAllPoints()
-    titleBg:SetColorTexture(0.1, 0.3, 0.6, 0.9)
-    titleBar.bg = titleBg  -- Store reference for color changes
+    titleBar:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING, -PADDING)
+    titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -PADDING)
 
     local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    titleText:SetPoint("LEFT", titleBar, "LEFT", 8, 0)
-    titleText:SetText("|cFF00D1FFFishingKit|r")
+    titleText:SetPoint("LEFT", titleBar, "LEFT", 0, 0)
+    titleText:SetText("|cFF47BEF5FishingKit|r")
     frame.titleText = titleText
-    frame.titleBar = titleBar  -- Store reference
+    frame.titleBar  = titleBar
 
-    -- Collapse toggle button (small minus/plus style)
+    -- Collapse button
     local collapseBtn = CreateFrame("Button", nil, titleBar)
     collapseBtn:SetSize(16, 16)
-    collapseBtn:SetPoint("RIGHT", titleBar, "RIGHT", -18, 0)
+    collapseBtn:SetPoint("RIGHT", titleBar, "RIGHT", -20, 0)
     collapseBtn:SetNormalTexture("Interface\\Buttons\\UI-MinusButton-Up")
     collapseBtn:SetPushedTexture("Interface\\Buttons\\UI-MinusButton-Down")
     collapseBtn:SetHighlightTexture("Interface\\Buttons\\UI-MinusButton-Highlight")
-
-    collapseBtn:SetScript("OnClick", function()
-        UI:ToggleCollapse()
-    end)
+    collapseBtn:SetScript("OnClick", function() UI:ToggleCollapse() end)
     collapseBtn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        if FK.db.settings.collapsed then
-            GameTooltip:SetText("Expand", 1, 0.82, 0)
-        else
-            GameTooltip:SetText("Collapse", 1, 0.82, 0)
-        end
+        GameTooltip:SetText(FK.db.settings.collapsed and "Expand" or "Collapse", 1, 0.82, 0)
         GameTooltip:Show()
     end)
     collapseBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -164,22 +189,23 @@ function UI:CreateMainFrame()
     -- Close button
     local closeBtn = CreateFrame("Button", nil, titleBar, "UIPanelCloseButton")
     closeBtn:SetSize(20, 20)
-    closeBtn:SetPoint("RIGHT", titleBar, "RIGHT", 0, 0)
-    closeBtn:SetScript("OnClick", function()
-        UI:Hide()
-    end)
+    closeBtn:SetPoint("RIGHT", titleBar, "RIGHT", 2, 0)
+    closeBtn:SetScript("OnClick", function() UI:Hide() end)
+
+    -- Thin separator line under the title
+    local titleDiv = frame:CreateTexture(nil, "ARTWORK")
+    titleDiv:SetHeight(1)
+    titleDiv:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING, -(PADDING + 24))
+    titleDiv:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(PADDING + 24))
+    titleDiv:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
 
     -- Make draggable
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
-
     frame:SetScript("OnDragStart", function(self)
-        if not FK.db.settings.locked then
-            self:StartMoving()
-        end
+        if not FK.db.settings.locked then self:StartMoving() end
     end)
-
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         UI:SavePosition()
@@ -194,8 +220,8 @@ function UI:CreateMainFrame()
         end
     end)
 
-    -- Content area starts below title
-    frame.contentTop = -30
+    -- Content area: below title (22px) + PADDING top + 1px divider + 3px gap
+    frame.contentTop = -(PADDING + 22 + 1 + 4)
 
     uiState.mainFrame = frame
     frame:Hide()
@@ -209,60 +235,61 @@ function UI:CreateCastBar()
     local frame = uiState.mainFrame
     local yPos = frame.contentTop
 
-    -- Cast bar container
     local container = CreateFrame("Frame", nil, frame)
-    container:SetHeight(40)
-    container:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, yPos)
+    container:SetHeight(46)
+    container:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING, yPos)
     container:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, yPos)
 
-    -- Status text (Idle / Casting / Waiting for bite!)
+    -- Status text (left, slightly larger)
     local statusText = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     statusText:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
-    statusText:SetText("|cFF888888Idle - Not Fishing|r")
+    statusText:SetText("|cFF66666BIdle|r")
     frame.castStatusText = statusText
 
-    -- Timer text (on the right)
-    local timerText = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    timerText:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
+    -- Timer text (right, small dim)
+    local timerText = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    timerText:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, -1)
+    timerText:SetJustifyH("RIGHT")
+    timerText:SetTextColor(D.label[1], D.label[2], D.label[3])
     timerText:SetText("")
     frame.castTimerText = timerText
 
-    -- Cast bar background
+    -- Bar background — dark, inset look, taller for prominence
     local barBg = container:CreateTexture(nil, "BACKGROUND")
-    barBg:SetPoint("TOPLEFT", statusText, "BOTTOMLEFT", 0, -4)
-    barBg:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, -4)
-    barBg:SetHeight(16)
-    barBg:SetColorTexture(0.1, 0.1, 0.1, 1)
+    barBg:SetPoint("TOPLEFT",  statusText, "BOTTOMLEFT",  0, -5)
+    barBg:SetPoint("TOPRIGHT", container,  "TOPRIGHT",    0, -5)
+    barBg:SetHeight(20)
+    barBg:SetColorTexture(D.barBg[1], D.barBg[2], D.barBg[3], 1)
     frame.castBarBg = barBg
 
-    -- Bite confidence band (behind the fill bar)
+    -- Bite confidence band (semi-transparent green fill behind the bar)
     local biteBand = container:CreateTexture(nil, "BORDER")
     biteBand:SetPoint("TOPLEFT", barBg, "TOPLEFT", 1, -1)
-    biteBand:SetHeight(14)
+    biteBand:SetHeight(18)
     biteBand:SetWidth(1)
-    biteBand:SetColorTexture(0.3, 0.8, 0.3, 0.25)
+    biteBand:SetColorTexture(D.success[1], D.success[2], D.success[3], 0.18)
     biteBand:Hide()
     frame.biteBand = biteBand
 
-    -- Bite median marker (thin vertical line)
+    -- Bite median marker
     local biteMedian = container:CreateTexture(nil, "BORDER")
     biteMedian:SetPoint("TOPLEFT", barBg, "TOPLEFT", 1, -1)
-    biteMedian:SetHeight(14)
+    biteMedian:SetHeight(18)
     biteMedian:SetWidth(2)
-    biteMedian:SetColorTexture(0.4, 1.0, 0.4, 0.5)
+    biteMedian:SetColorTexture(D.success[1], D.success[2], D.success[3], 0.55)
     biteMedian:Hide()
     frame.biteMedian = biteMedian
 
-    -- Cast bar fill (on top of band)
+    -- Cast bar fill
     local bar = container:CreateTexture(nil, "ARTWORK")
     bar:SetPoint("TOPLEFT", barBg, "TOPLEFT", 1, -1)
-    bar:SetHeight(14)
+    bar:SetHeight(18)
     bar:SetWidth(1)
-    bar:SetColorTexture(0.2, 0.6, 1.0, 1)
+    bar:SetColorTexture(D.accent[1], D.accent[2], D.accent[3], 1)
     frame.castBar = bar
 
     frame.castContainer = container
-    frame.contentTop = yPos - 44
+    frame.contentTop = yPos - 50
 end
 
 -- ============================================================================
@@ -273,49 +300,52 @@ function UI:CreateSkillBar()
     local frame = uiState.mainFrame
     local yPos = frame.contentTop
 
-    -- Container
+    AddDivider(frame, yPos)
+    yPos = yPos - 6
+
     local container = CreateFrame("Frame", nil, frame)
-    container:SetHeight(32)
-    container:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, yPos)
+    container:SetHeight(36)
+    container:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING, yPos)
     container:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, yPos)
 
-    -- Label
+    -- "SKILL" label (dim, uppercase)
     local label = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     label:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
-    label:SetText("Fishing Skill:")
-    label:SetTextColor(0.8, 0.8, 0.8)
+    label:SetText("SKILL")
+    label:SetTextColor(D.label[1], D.label[2], D.label[3])
 
-    -- Skill text
-    local skillText = container:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    -- Skill value (bright, right-aligned)
+    local skillText = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     skillText:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
+    skillText:SetJustifyH("RIGHT")
+    skillText:SetTextColor(D.value[1], D.value[2], D.value[3])
     skillText:SetText("0 / 375")
     frame.skillText = skillText
 
-    -- Progress bar background
+    -- Thin skill progress bar
     local barBg = container:CreateTexture(nil, "BACKGROUND")
-    barBg:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
-    barBg:SetPoint("TOPRIGHT", skillText, "BOTTOMRIGHT", 0, -2)
-    barBg:SetHeight(10)
-    barBg:SetColorTexture(0.1, 0.1, 0.1, 1)
+    barBg:SetPoint("TOPLEFT",  label,     "BOTTOMLEFT",  0, -3)
+    barBg:SetPoint("TOPRIGHT", skillText, "BOTTOMRIGHT", 0, -3)
+    barBg:SetHeight(5)
+    barBg:SetColorTexture(D.barBg[1], D.barBg[2], D.barBg[3], 1)
 
-    -- Progress bar
     local bar = container:CreateTexture(nil, "ARTWORK")
     bar:SetPoint("TOPLEFT", barBg, "TOPLEFT", 1, -1)
-    bar:SetHeight(8)
+    bar:SetHeight(3)
     bar:SetWidth(1)
-    bar:SetColorTexture(0.2, 0.6, 1.0, 1)
-    frame.skillBar = bar
+    bar:SetColorTexture(D.accent[1], D.accent[2], D.accent[3], 1)
+    frame.skillBar   = bar
     frame.skillBarBg = barBg
 
-    -- Effective skill (with bonuses)
+    -- Effective skill (dim sub-line)
     local effectiveText = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    effectiveText:SetPoint("TOPLEFT", barBg, "BOTTOMLEFT", 0, -1)
+    effectiveText:SetPoint("TOPLEFT", barBg, "BOTTOMLEFT", 0, -3)
+    effectiveText:SetTextColor(D.label[1], D.label[2], D.label[3])
     effectiveText:SetText("Effective: 0 (+0)")
-    effectiveText:SetTextColor(0.5, 0.8, 1.0)
     frame.effectiveText = effectiveText
 
     frame.skillContainer = container
-    frame.contentTop = yPos - 36
+    frame.contentTop = yPos - 38
 end
 
 -- ============================================================================
@@ -326,34 +356,36 @@ function UI:CreateZonePanel()
     local frame = uiState.mainFrame
     local yPos = frame.contentTop
 
-    -- Container
+    AddDivider(frame, yPos)
+    yPos = yPos - 6
+
     local container = CreateFrame("Frame", nil, frame)
     container:SetHeight(32)
-    container:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, yPos)
+    container:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING, yPos)
     container:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, yPos)
 
-    -- Zone name
-    local zoneName = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    -- Zone name (accent color, left)
+    local zoneName = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     zoneName:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
-    zoneName:SetText("Zone: Unknown")
-    zoneName:SetTextColor(1.0, 0.82, 0.0)
+    zoneName:SetTextColor(D.accent[1], D.accent[2], D.accent[3])
+    zoneName:SetText("Unknown Zone")
     frame.zoneName = zoneName
 
-    -- Zone skill requirement
+    -- Zone skill requirement (dim, below)
     local zoneSkill = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     zoneSkill:SetPoint("TOPLEFT", zoneName, "BOTTOMLEFT", 0, -2)
-    zoneSkill:SetText("Required: 0 | No getaway: 0")
-    zoneSkill:SetTextColor(0.7, 0.7, 0.7)
+    zoneSkill:SetTextColor(D.label[1], D.label[2], D.label[3])
+    zoneSkill:SetText("")
     frame.zoneSkill = zoneSkill
 
-    -- Seasonal note (subtle, below zone skill)
+    -- Seasonal note (even dimmer, optional third line)
     local seasonalNote = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     seasonalNote:SetPoint("TOPLEFT", zoneSkill, "BOTTOMLEFT", 0, -1)
     seasonalNote:SetText("")
     frame.seasonalNote = seasonalNote
 
     frame.zoneContainer = container
-    frame.contentTop = yPos - 36
+    frame.contentTop = yPos - 34
 end
 
 -- ============================================================================
@@ -364,94 +396,96 @@ function UI:CreateStatsPanel()
     local frame = uiState.mainFrame
     local yPos = frame.contentTop
 
-    -- Container
+    AddDivider(frame, yPos)
+    yPos = yPos - 6
+
     local container = CreateFrame("Frame", nil, frame)
-    container:SetHeight(52)
-    container:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, yPos)
+    container:SetHeight(62)
+    container:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING, yPos)
     container:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, yPos)
 
-    -- Session header
-    local header = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    -- "SESSION" label left, time right — both dim
+    local header = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     header:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
-    header:SetText("Session")
-    header:SetTextColor(1.0, 0.82, 0.0)
+    header:SetText("SESSION")
+    header:SetTextColor(D.label[1], D.label[2], D.label[3])
 
-    -- Session time
     local sessionTime = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    sessionTime:SetPoint("LEFT", header, "RIGHT", 8, 0)
+    sessionTime:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
+    sessionTime:SetJustifyH("RIGHT")
+    sessionTime:SetTextColor(D.label[1], D.label[2], D.label[3])
     sessionTime:SetText("0m")
-    sessionTime:SetTextColor(0.6, 0.6, 0.6)
     frame.sessionTime = sessionTime
 
-    -- Stats row 1: Casts and Catches (big numbers)
-    local row1Y = -16
+    -- Column offset for right column (half panel width)
+    local col2 = (FRAME_WIDTH - PADDING * 2) / 2
 
+    -- Row 1: Casts | Catches
     local castsLabel = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    castsLabel:SetPoint("TOPLEFT", container, "TOPLEFT", 0, row1Y)
-    castsLabel:SetText("Casts:")
-    castsLabel:SetTextColor(0.7, 0.7, 0.7)
+    castsLabel:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -16)
+    castsLabel:SetText("Casts")
+    castsLabel:SetTextColor(D.label[1], D.label[2], D.label[3])
 
-    local castsValue = container:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    castsValue:SetPoint("LEFT", castsLabel, "RIGHT", 4, 0)
+    local castsValue = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    castsValue:SetPoint("LEFT", castsLabel, "RIGHT", 5, 0)
+    castsValue:SetTextColor(D.value[1], D.value[2], D.value[3])
     castsValue:SetText("0")
     frame.statsCasts = castsValue
 
     local catchesLabel = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    catchesLabel:SetPoint("LEFT", castsValue, "RIGHT", 20, 0)
-    catchesLabel:SetText("Catches:")
-    catchesLabel:SetTextColor(0.7, 0.7, 0.7)
+    catchesLabel:SetPoint("TOPLEFT", container, "TOPLEFT", col2, -16)
+    catchesLabel:SetText("Catches")
+    catchesLabel:SetTextColor(D.label[1], D.label[2], D.label[3])
 
-    local catchesValue = container:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    catchesValue:SetPoint("LEFT", catchesLabel, "RIGHT", 4, 0)
+    local catchesValue = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    catchesValue:SetPoint("LEFT", catchesLabel, "RIGHT", 5, 0)
+    catchesValue:SetTextColor(D.success[1], D.success[2], D.success[3])
     catchesValue:SetText("0")
-    catchesValue:SetTextColor(0.2, 1.0, 0.2)
     frame.statsCatches = catchesValue
 
-    -- Stats row 2: Rate and Fish/hr
-    local row2Y = -32
-
+    -- Row 2: Rate | Fish/hr
     local rateLabel = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    rateLabel:SetPoint("TOPLEFT", container, "TOPLEFT", 0, row2Y)
-    rateLabel:SetText("Success:")
-    rateLabel:SetTextColor(0.7, 0.7, 0.7)
+    rateLabel:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -30)
+    rateLabel:SetText("Rate")
+    rateLabel:SetTextColor(D.label[1], D.label[2], D.label[3])
 
     local rateValue = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    rateValue:SetPoint("LEFT", rateLabel, "RIGHT", 4, 0)
+    rateValue:SetPoint("LEFT", rateLabel, "RIGHT", 5, 0)
+    rateValue:SetTextColor(D.value[1], D.value[2], D.value[3])
     rateValue:SetText("0%")
     frame.statsRate = rateValue
 
     local fphLabel = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    fphLabel:SetPoint("LEFT", rateValue, "RIGHT", 20, 0)
-    fphLabel:SetText("Fish/hr:")
-    fphLabel:SetTextColor(0.7, 0.7, 0.7)
+    fphLabel:SetPoint("TOPLEFT", container, "TOPLEFT", col2, -30)
+    fphLabel:SetText("Fish/hr")
+    fphLabel:SetTextColor(D.label[1], D.label[2], D.label[3])
 
     local fphValue = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    fphValue:SetPoint("LEFT", fphLabel, "RIGHT", 4, 0)
+    fphValue:SetPoint("LEFT", fphLabel, "RIGHT", 5, 0)
+    fphValue:SetTextColor(D.value[1], D.value[2], D.value[3])
     fphValue:SetText("0")
     frame.statsFPH = fphValue
 
-    -- Stats row 3: Gold/hr (Vendor + AH)
-    local row3Y = -46
-
+    -- Row 3: Gold/hr (Vendor + AH) — full width
     local goldLabel = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    goldLabel:SetPoint("TOPLEFT", container, "TOPLEFT", 0, row3Y)
-    goldLabel:SetText("Gold/hr:")
-    goldLabel:SetTextColor(0.7, 0.7, 0.7)
+    goldLabel:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -44)
+    goldLabel:SetText("Gold/hr")
+    goldLabel:SetTextColor(D.label[1], D.label[2], D.label[3])
 
     local goldVendorValue = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    goldVendorValue:SetPoint("LEFT", goldLabel, "RIGHT", 4, 0)
+    goldVendorValue:SetPoint("LEFT", goldLabel, "RIGHT", 5, 0)
+    goldVendorValue:SetTextColor(0.72, 0.72, 0.76)
     goldVendorValue:SetText("")
-    goldVendorValue:SetTextColor(0.8, 0.8, 0.8)
     frame.statsGoldVendor = goldVendorValue
 
     local goldAHValue = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     goldAHValue:SetPoint("LEFT", goldVendorValue, "RIGHT", 2, 0)
+    goldAHValue:SetTextColor(D.gold[1], D.gold[2], D.gold[3])
     goldAHValue:SetText("")
-    goldAHValue:SetTextColor(1, 0.82, 0)
     frame.statsGoldAH = goldAHValue
 
     frame.statsContainer = container
-    frame.contentTop = yPos - 64
+    frame.contentTop = yPos - 66
 end
 
 -- ============================================================================
@@ -462,42 +496,45 @@ function UI:CreateLureBar()
     local frame = uiState.mainFrame
     local yPos = frame.contentTop
 
-    -- Container
+    AddDivider(frame, yPos)
+    yPos = yPos - 6
+
     local container = CreateFrame("Frame", nil, frame)
-    container:SetHeight(26)
-    container:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, yPos)
+    container:SetHeight(24)
+    container:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING, yPos)
     container:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, yPos)
 
-    -- Label
+    -- "LURE" label (dim)
     local label = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     label:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
-    label:SetText("Lure:")
-    label:SetTextColor(0.8, 0.8, 0.8)
+    label:SetText("LURE")
+    label:SetTextColor(D.label[1], D.label[2], D.label[3])
 
-    -- Status/Timer
-    local lureStatus = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    lureStatus:SetPoint("LEFT", label, "RIGHT", 4, 0)
+    -- Status (right-aligned, same row)
+    local lureStatus = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    lureStatus:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
+    lureStatus:SetJustifyH("RIGHT")
+    lureStatus:SetTextColor(D.label[1], D.label[2], D.label[3])
     lureStatus:SetText("None")
     frame.lureStatus = lureStatus
 
-    -- Progress bar background
+    -- Thin lure progress bar
     local barBg = container:CreateTexture(nil, "BACKGROUND")
-    barBg:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
-    barBg:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, -2)
-    barBg:SetHeight(6)
-    barBg:SetColorTexture(0.1, 0.1, 0.1, 1)
+    barBg:SetPoint("TOPLEFT",  label,     "BOTTOMLEFT",  0, -4)
+    barBg:SetPoint("TOPRIGHT", container, "TOPRIGHT",    0, -4)
+    barBg:SetHeight(5)
+    barBg:SetColorTexture(D.barBg[1], D.barBg[2], D.barBg[3], 1)
 
-    -- Progress bar
     local bar = container:CreateTexture(nil, "ARTWORK")
     bar:SetPoint("TOPLEFT", barBg, "TOPLEFT", 1, -1)
-    bar:SetHeight(4)
+    bar:SetHeight(3)
     bar:SetWidth(1)
-    bar:SetColorTexture(0.8, 0.6, 0.2, 1)
-    frame.lureBar = bar
+    bar:SetColorTexture(D.warn[1], D.warn[2], D.warn[3], 1)
+    frame.lureBar   = bar
     frame.lureBarBg = barBg
 
     frame.lureContainer = container
-    frame.contentTop = yPos - 30
+    frame.contentTop = yPos - 28
 end
 
 -- ============================================================================
@@ -510,38 +547,34 @@ local function CreateSimpleIconButton(parent, name, size, iconPath, isSecure)
     btn:SetSize(size, size)
     btn:RegisterForClicks("AnyUp", "AnyDown")
 
-    -- Background (dark)
+    -- Dark flat background
     local bg = btn:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
-    bg:SetColorTexture(0.1, 0.1, 0.1, 0.9)
+    bg:SetColorTexture(0.08, 0.08, 0.10, 1)
     btn.bg = bg
 
-    -- Icon
+    -- Icon with small inset
     local icon = btn:CreateTexture(nil, "ARTWORK")
-    icon:SetPoint("TOPLEFT", 3, -3)
-    icon:SetPoint("BOTTOMRIGHT", -3, 3)
+    icon:SetPoint("TOPLEFT",     3, -3)
+    icon:SetPoint("BOTTOMRIGHT", -3,  3)
     icon:SetTexture(iconPath)
     btn.icon = icon
 
-    -- Border
-    local border = btn:CreateTexture(nil, "OVERLAY")
-    border:SetAllPoints()
-    border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
-    border:SetTexCoord(0.2, 0.8, 0.2, 0.8)
-    btn.border = border
+    -- Thin 1 px border using 4 edge textures (no Quickslot2 texture)
+    AddThinBorder(btn, D.border[1], D.border[2], D.border[3], D.borA)
 
-    -- Highlight on hover
+    -- Highlight on hover (ADD blend keeps it subtle)
     btn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
     btn:GetHighlightTexture():SetBlendMode("ADD")
 
-    -- Push effect
+    -- Subtle push effect
     btn:SetScript("OnMouseDown", function(self)
-        self.icon:SetPoint("TOPLEFT", 4, -4)
-        self.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+        self.icon:SetPoint("TOPLEFT",     4, -4)
+        self.icon:SetPoint("BOTTOMRIGHT", -2,  2)
     end)
     btn:SetScript("OnMouseUp", function(self)
-        self.icon:SetPoint("TOPLEFT", 3, -3)
-        self.icon:SetPoint("BOTTOMRIGHT", -3, 3)
+        self.icon:SetPoint("TOPLEFT",     3, -3)
+        self.icon:SetPoint("BOTTOMRIGHT", -3,  3)
     end)
 
     return btn
@@ -550,24 +583,30 @@ end
 function UI:CreateButtons()
     local frame = uiState.mainFrame
 
+    -- Thin divider above button row
+    local btnDiv = frame:CreateTexture(nil, "ARTWORK")
+    btnDiv:SetHeight(1)
+    btnDiv:SetPoint("BOTTOMLEFT",  frame, "BOTTOMLEFT",  PADDING, PADDING + 16 + 54 + 4)
+    btnDiv:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, PADDING + 16 + 54 + 4)
+    btnDiv:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
+
     -- Container above the footer
     local container = CreateFrame("Frame", nil, frame)
-    container:SetHeight(55)
-    container:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PADDING, PADDING + 16)
+    container:SetHeight(54)
+    container:SetPoint("BOTTOMLEFT",  frame, "BOTTOMLEFT",  PADDING, PADDING + 16)
     container:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, PADDING + 16)
 
-    local iconSize = 34  -- Slightly smaller to fit 7 buttons
-    local spacing = 3
-    local numButtons = 7
-    local totalWidth = (iconSize * numButtons) + (spacing * (numButtons - 1))
-    local startX = (FRAME_WIDTH - PADDING * 2 - totalWidth) / 2
+    -- 7 × 36px icons + 6 × 3px gaps = 252 + 18 = 270 = FRAME_WIDTH - 2*PADDING (290-20)
+    local iconSize = 36
+    local spacing  = 3
+    local startX   = 0  -- exact fit, no centering offset needed
 
-    -- Helper to add label
+    -- Helper: muted label beneath each button
     local function AddLabel(btn, text)
         local label = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        label:SetPoint("TOP", btn, "BOTTOM", 0, -1)
+        label:SetPoint("TOP", btn, "BOTTOM", 0, -2)
         label:SetText(text)
-        label:SetTextColor(0.7, 0.7, 0.7)
+        label:SetTextColor(D.label[1], D.label[2], D.label[3])
         return label
     end
 
@@ -778,27 +817,34 @@ end
 function UI:CreateFooter()
     local frame = uiState.mainFrame
 
+    -- Thin line above footer
+    local footDiv = frame:CreateTexture(nil, "ARTWORK")
+    footDiv:SetHeight(1)
+    footDiv:SetPoint("BOTTOMLEFT",  frame, "BOTTOMLEFT",  PADDING, PADDING + 14 + 2)
+    footDiv:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, PADDING + 14 + 2)
+    footDiv:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
+
     local footer = CreateFrame("Frame", nil, frame)
     footer:SetHeight(14)
-    footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PADDING, PADDING)
+    footer:SetPoint("BOTTOMLEFT",  frame, "BOTTOMLEFT",  PADDING, PADDING)
     footer:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, PADDING)
 
-    -- Bag space (right side)
+    -- Bag space (right, very muted)
     local bagText = footer:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     bagText:SetPoint("RIGHT", footer, "RIGHT", 0, 0)
     bagText:SetJustifyH("RIGHT")
     bagText:SetText("")
-    bagText:SetTextColor(0.6, 0.6, 0.6)
+    bagText:SetTextColor(D.label[1], D.label[2], D.label[3])
     frame.footerBags = bagText
 
-    -- Last catch text (left side, stops before bag counter)
+    -- Last catch (left, equally muted)
     local lastCatchText = footer:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    lastCatchText:SetPoint("LEFT", footer, "LEFT", 0, 0)
+    lastCatchText:SetPoint("LEFT",  footer, "LEFT",  0, 0)
     lastCatchText:SetPoint("RIGHT", bagText, "LEFT", -6, 0)
     lastCatchText:SetJustifyH("LEFT")
     lastCatchText:SetWordWrap(false)
     lastCatchText:SetText("")
-    lastCatchText:SetTextColor(0.6, 0.6, 0.6)
+    lastCatchText:SetTextColor(D.label[1], D.label[2], D.label[3])
     frame.footerLastCatch = lastCatchText
 
     frame.footerContainer = footer
@@ -1321,12 +1367,12 @@ function UI:UpdateRouteButton()
 
     local isActive = FK.Navigation and FK.Navigation:IsActive()
     if isActive then
-        -- Active route - green tint
-        frame.routeBtn.bg:SetColorTexture(0, 0.3, 0, 0.9)
-        if frame.routeLabel then frame.routeLabel:SetText("|cFF00FF00Route|r") end
+        -- Active route — subtle green tint on the button bg
+        frame.routeBtn.bg:SetColorTexture(0.04, 0.18, 0.08, 1)
+        if frame.routeLabel then frame.routeLabel:SetText("|cFF44C468Route|r") end
     else
-        -- Inactive - normal
-        frame.routeBtn.bg:SetColorTexture(0.1, 0.1, 0.1, 0.9)
+        -- Inactive — match standard button bg
+        frame.routeBtn.bg:SetColorTexture(0.08, 0.08, 0.10, 1)
         if frame.routeLabel then frame.routeLabel:SetText("Route") end
     end
 end
@@ -1360,25 +1406,18 @@ function UI:OnCatchSuccess()
     end
 end
 
--- Set panel to success state (GREEN - caught something!)
+-- Set panel to success state (subtle green border flash)
 function UI:SetPanelSuccess()
     local frame = uiState.mainFrame
     if not frame then return end
 
-    -- Flash the background green
     if frame.SetBackdropColor then
-        frame:SetBackdropColor(0, 0.5, 0, 0.95)
-        frame:SetBackdropBorderColor(0.2, 1, 0.2, 1)
+        frame:SetBackdropColor(0.04, 0.10, 0.06, 0.95)
+        frame:SetBackdropBorderColor(D.success[1], D.success[2], D.success[3], 0.90)
     end
 
-    -- Change title bar to green
-    if frame.titleBar and frame.titleBar.bg then
-        frame.titleBar.bg:SetColorTexture(0.1, 0.6, 0.1, 0.95)
-    end
-
-    -- Update status text
     if frame.castStatusText then
-        frame.castStatusText:SetText("|cFF00FF00CAUGHT!|r")
+        frame.castStatusText:SetText("|cFF44C468CAUGHT!|r")
     end
 end
 
@@ -1388,13 +1427,8 @@ function UI:SetPanelNormal()
     if not frame then return end
 
     if frame.SetBackdropColor then
-        frame:SetBackdropColor(0, 0, 0, 0.9)
-        frame:SetBackdropBorderColor(0.3, 0.6, 1.0, 0.8)
-    end
-
-    -- Reset title bar
-    if frame.titleBar and frame.titleBar.bg then
-        frame.titleBar.bg:SetColorTexture(0.1, 0.3, 0.6, 0.9)
+        frame:SetBackdropColor(D.bg[1], D.bg[2], D.bg[3], D.bgA)
+        frame:SetBackdropBorderColor(D.border[1], D.border[2], D.border[3], D.borA)
     end
 end
 
@@ -1739,45 +1773,42 @@ function UI:CreateContestPanel()
 
     if frame.SetBackdrop then
         frame:SetBackdrop({
-            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+            bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
             edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-            tile = true, tileSize = 16, edgeSize = 12,
-            insets = { left = 2, right = 2, top = 2, bottom = 2 }
+            tile = true, tileSize = 16, edgeSize = 8,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
         })
-        frame:SetBackdropColor(0.1, 0.05, 0, 0.95)
-        frame:SetBackdropBorderColor(1, 0.82, 0, 0.8)
+        frame:SetBackdropColor(0.06, 0.04, 0.01, 0.95)
+        frame:SetBackdropBorderColor(D.gold[1], D.gold[2], D.gold[3], 0.70)
     end
 
-    -- Contest icon and title
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    title:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -4)
+    title:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -5)
     title:SetText("|cFFFFD700STV Extravaganza|r")
 
-    -- Status (time remaining)
     local statusText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    statusText:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -6, -4)
-    statusText:SetTextColor(0.8, 0.8, 0.8)
+    statusText:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -6, -5)
+    statusText:SetJustifyH("RIGHT")
+    statusText:SetTextColor(D.label[1], D.label[2], D.label[3])
     frame.statusText = statusText
 
-    -- Progress bar
     local barBg = frame:CreateTexture(nil, "BACKGROUND")
-    barBg:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 6, 4)
-    barBg:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, 4)
-    barBg:SetHeight(8)
-    barBg:SetColorTexture(0.1, 0.1, 0.1, 1)
+    barBg:SetPoint("BOTTOMLEFT",  frame, "BOTTOMLEFT",  6, 5)
+    barBg:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, 5)
+    barBg:SetHeight(5)
+    barBg:SetColorTexture(D.barBg[1], D.barBg[2], D.barBg[3], 1)
     frame.barBg = barBg
 
     local bar = frame:CreateTexture(nil, "ARTWORK")
     bar:SetPoint("TOPLEFT", barBg, "TOPLEFT", 1, -1)
-    bar:SetHeight(6)
+    bar:SetHeight(3)
     bar:SetWidth(1)
-    bar:SetColorTexture(1, 0.82, 0, 1)
+    bar:SetColorTexture(D.gold[1], D.gold[2], D.gold[3], 1)
     frame.bar = bar
 
-    -- Tastyfish count
     local countText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     countText:SetPoint("LEFT", title, "RIGHT", 8, 0)
-    countText:SetText("0/40 Tastyfish")
+    countText:SetText("0/40")
     frame.countText = countText
 
     frame:Hide()
