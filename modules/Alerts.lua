@@ -170,9 +170,9 @@ end
 
 function Alerts:OnBobberLanded()
     -- Bobber is now in the water, start watching for loot.
-    -- Boost sounds here (matching BetterFishing's CHANNEL_START timing)
-    -- so we only boost when the bobber is actually in the water,
-    -- not during the cast animation.
+    -- BoostFishingSound is idempotent via the soundBoosted guard: if the
+    -- player re-casts while the bobber is still in the water, the second
+    -- call is a no-op and the original CVar cache is preserved.
     alertState.watching = true
     alertState.splashDetected = false
 
@@ -186,19 +186,20 @@ function Alerts:OnBobberLanded()
 end
 
 function Alerts:OnFishingEnd()
-    -- Restore sounds immediately when the channel stops (matching
-    -- BetterFishing's CHANNEL_STOP restore timing).
+    -- CHANNEL_STOP fired — the fishing channel ended.  Do NOT restore sound
+    -- here: the player may be re-casting, and the sound should stay boosted
+    -- until fishing is truly finished (loot collected or 1-second timeout).
+    -- RestoreFishingSound is called only from OnFishingComplete.
     alertState.watching = false
 
-    self:RestoreFishingSound()
     self:HideTimer()
     self:StopWatching()
 
-    FK:Debug("Alert: Fishing ended, sound restored")
+    FK:Debug("Alert: Fishing channel ended (sound will restore on complete)")
 end
 
 -- Called when fishing is truly done (loot closed or timeout).
--- RestoreFishingSound is a no-op if already restored in OnFishingEnd.
+-- RestoreFishingSound is a no-op if not currently boosted.
 function Alerts:OnFishingComplete()
     self:RestoreFishingSound()
     FK:Debug("Alert: Fishing complete")

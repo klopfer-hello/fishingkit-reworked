@@ -711,12 +711,9 @@ eventHandlers.UNIT_SPELLCAST_SUCCEEDED = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
     if IsFishingSpell(arg2, arg3, arg4, arg5) then
-        FK:Debug("Fishing cast succeeded (bobber in water)")
-
-        -- Notify alerts module to start watching for splashes
-        if FK.Alerts and FK.Alerts.OnBobberLanded then
-            FK.Alerts:OnBobberLanded()
-        end
+        FK:Debug("Fishing cast succeeded (bobber deployed)")
+        -- Sound boost and watch setup happen at CHANNEL_START (when bobber hits
+        -- the water), matching BetterFishing's timing exactly.
     end
 end
 
@@ -804,10 +801,13 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_START = function(unit, arg2, arg3, arg4, ar
         FK:Debug("CHANNEL_START set isFishing=true castStartTime=" .. tostring(FK.State.castStartTime))
         FK:Debug("Fishing channel started (bobber in water)")
 
-        -- Count the cast now (bobber in water = definite fishing attempt)
-        if FK.Statistics and FK.Statistics.OnCastStart then
-            FK.Statistics:OnCastStart()
+        -- Boost sounds and start event watching now that the bobber is in the water.
+        -- Mirrors BetterFishing: enhance at CHANNEL_START, restore at CHANNEL_STOP.
+        if FK.Alerts and FK.Alerts.OnBobberLanded then
+            FK.Alerts:OnBobberLanded()
         end
+        -- Cast is counted at resolution (catch via OnLootReady, miss via 1s timeout)
+        -- so we do NOT call OnCastStart here. Re-casts are simply never counted.
     end
 end
 
@@ -815,38 +815,54 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, arg2, arg3, arg4, arg
     if unit ~= "player" then return end
 
     if IsFishingSpell(arg2, arg3, arg4, arg5) then
+        -- On a re-cast, SPELLCAST_START bumps castGen before CHANNEL_STOP fires
+        -- for the old bobber (Scenario A).  channelCastGen (set at CHANNEL_START)
+        -- still holds the old gen, so if they differ this is a stale CHANNEL_STOP
+        -- from the cancelled cast — skip everything to avoid spurious timers.
+        if FK.State.channelCastGen ~= FK.State.castGen then
+            FK:Debug("CHANNEL_STOP ignored (stale re-cast, channelGen=" ..
+                tostring(FK.State.channelCastGen) .. " castGen=" .. FK.State.castGen .. ")")
+            return
+        end
+
         -- DON'T set isFishing = false here!
         -- LOOT_OPENED needs isFishing to still be true
         -- We'll set it false in LOOT_CLOSED instead
         FK:Debug("Fishing channel stopped (waiting for loot)")
 
-        -- Only stop alerts if this CHANNEL_STOP belongs to the current bobber.
-        -- On a re-cast, SPELLCAST_START bumps castGen before CHANNEL_STOP for the
-        -- old bobber fires. Comparing channelCastGen (set at CHANNEL_START) against
-        -- the current castGen lets us skip RestoreFishingSound for the old bobber.
-        if FK.State.channelCastGen == FK.State.castGen then
-            if FK.Alerts and FK.Alerts.OnFishingEnd then
-                FK.Alerts:OnFishingEnd()
-            end
-        else
-            FK:Debug("CHANNEL_STOP skipped Alerts:OnFishingEnd (recast detected, channelGen=" ..
-                tostring(FK.State.channelCastGen) .. " castGen=" .. FK.State.castGen .. ")")
+        if FK.Alerts and FK.Alerts.OnFishingEnd then
+            FK.Alerts:OnFishingEnd()
         end
 
         -- Set a flag to know we're waiting for loot
         FK.State.waitingForLoot = true
         FK.State.lootCastGen = FK.State.castGen  -- save which cast's loot we're waiting for
 
-        -- Timeout: if no loot window opens in 1 second, reset state
-        -- Use castGen to detect if a new cast started before timeout fires
+        -- Timeout: if no loot window opens in 1 second, the fish got away.
         local savedGen = FK.State.castGen
         C_Timer.After(1, function()
             if FK.State.waitingForLoot and FK.State.castGen == savedGen then
+                -- Extra re-cast safety: if a new fishing channel is already running,
+                -- this CHANNEL_STOP belonged to an old bobber that was cancelled by
+                -- a re-cast. TBC Classic UnitChannelInfo returns only 6 values (no
+                -- spellID), so we check for any active channel instead of by ID.
+                local isRecast = UnitChannelInfo("player") ~= nil
+                if isRecast then
+                    FK.State.waitingForLoot = false
+                    FK:Debug("Timeout: re-cast detected via UnitChannelInfo, not counting miss")
+                    return
+                end
+
                 FK.State.isFishing = false
                 FK.State.castStartTime = nil
                 FK.State.waitingForLoot = false
-                FK:Debug("Fishing timeout - no loot")
-                FK:Debug("Timeout reset state (gen=" .. savedGen .. ")")
+                FK:Debug("Fishing timeout - no loot (fish got away)")
+
+                -- Count this as a completed (missed) cast
+                if FK.Statistics and FK.Statistics.OnCastStart then
+                    FK.Statistics:OnCastStart()
+                end
+
                 if FK.Alerts and FK.Alerts.OnFishingComplete then
                     FK.Alerts:OnFishingComplete()
                 end

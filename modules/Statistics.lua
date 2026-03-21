@@ -159,6 +159,12 @@ function Stats:OnLootReady()
         return
     end
 
+    -- Count one cast for this loot event (successful resolution).
+    -- Casts are only counted here (catch) or in the CHANNEL_STOP 1s timeout (miss)
+    -- so that re-casts — where the old bobber is cancelled before it resolves —
+    -- are never counted.
+    self:OnCastStart()
+
     for i = 1, numItems do
         local texture, name, count, quality = GetLootSlotInfo(i)
         if name and count and count > 0 then
@@ -506,13 +512,11 @@ function Stats:GetSessionStats()
         duration = duration + (GetTime() - sessionData.fishingPoleEquipTime)
     end
 
-    -- Exclude the in-progress cast from the denominator so success rate is not
-    -- immediately penalised the moment the bobber hits the water.
-    local completedCasts = sessionData.casts - (FK.State.isFishing and 1 or 0)
-    completedCasts = math.max(completedCasts, 0)
+    -- Casts are only counted at resolution (catch or genuine timeout), so
+    -- sessionData.casts already excludes any in-progress cast.
     local successRate = 0
-    if completedCasts > 0 then
-        successRate = (sessionData.catches / completedCasts) * 100
+    if sessionData.casts > 0 then
+        successRate = (sessionData.catches / sessionData.casts) * 100
     end
 
     return {
