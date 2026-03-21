@@ -27,12 +27,13 @@ modules\Statistics.lua
 
 # Features
 FishingKit.xml
+modules\Alerts.lua
 modules\Equipment.lua
+modules\Navigation.lua
 modules\PoolData.lua
 modules\Pools.lua
-modules\Navigation.lua
-modules\Alerts.lua
 
 # Interface
-modules\UI.lua
 modules\Config.lua
+modules\UI.lua
+modules\ZoneFish.lua

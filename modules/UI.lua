@@ -188,6 +188,25 @@ function UI:CreateMainFrame()
         return btn
     end
 
+    -- Zone Fish toggle button (fish icon, opens catch-rate panel below)
+    local zoneFishBtn = MakeIconBtn(titleBar, "%")
+    zoneFishBtn:SetPoint("RIGHT", titleBar, "RIGHT", -36, 0)
+    zoneFishBtn:SetScript("OnClick", function()
+        if FK.ZoneFish then FK.ZoneFish:Toggle() end
+    end)
+    zoneFishBtn:SetScript("OnEnter", function(self)
+        self.lbl:SetTextColor(0.28, 0.74, 0.97)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText("Zone Catch Rates", 1, 0.82, 0)
+        GameTooltip:AddLine("Show fish caught in this zone with %", 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    zoneFishBtn:SetScript("OnLeave", function(self)
+        self.lbl:SetTextColor(0.40, 0.40, 0.45)
+        GameTooltip:Hide()
+    end)
+    frame.zoneFishBtn = zoneFishBtn
+
     -- Collapse button
     local collapseBtn = MakeIconBtn(titleBar, "−")
     collapseBtn:SetPoint("RIGHT", titleBar, "RIGHT", -18, 0)

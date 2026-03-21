@@ -542,6 +542,11 @@ local function InitializeAddon()
         FK.UI:Initialize()
     end
 
+    -- ZoneFish panel attaches to the main frame, so must init after UI
+    if FK.ZoneFish and FK.ZoneFish.Initialize then
+        FK.ZoneFish:Initialize()
+    end
+
     if FK.Config and FK.Config.Initialize then
         FK.Config:Initialize()
     end
