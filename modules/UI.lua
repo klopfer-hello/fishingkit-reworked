@@ -23,6 +23,7 @@ local uiState = {
     visible = false,
     elapsed = 0,       -- accumulator for fast (0.1s) cast-bar updates
     slowElapsed = 0,   -- accumulator for slow (1.0s) panel updates
+    goldElapsed = 0,   -- accumulator for gold/hr display (10s)
     lastCatch = nil,
 }
 
@@ -1000,7 +1001,7 @@ function UI:UpdatePanel()
         if frame.seasonalNote then frame.seasonalNote:SetText("") end
     end
 
-    -- Update session stats
+    -- Update session stats (1 Hz)
     if FK.Statistics then
         local stats = FK.Statistics:GetSessionStats()
         frame.statsCasts:SetText(tostring(stats.casts))
@@ -1009,8 +1010,10 @@ function UI:UpdatePanel()
         frame.statsFPH:SetText(string.format("%.0f", stats.fishPerHour))
         frame.sessionTime:SetText(FK:FormatTime(stats.duration))
 
-        -- Gold per hour display (blended: AH price when available, vendor price as fallback)
-        if frame.statsGoldVendor then
+        -- Gold/hr changes slowly (running average over the whole session) — update every 10s
+        uiState.goldElapsed = uiState.goldElapsed + 1
+        if uiState.goldElapsed >= 10 and frame.statsGoldVendor then
+            uiState.goldElapsed = 0
             local vendorGPH = stats.vendorPerHour or 0
             local ahGPH = stats.blendedPerHour or 0
             frame.statsGoldVendor:SetText("V: " .. FK:FormatCopper(math.floor(vendorGPH)))
@@ -1477,6 +1480,7 @@ function UI:Show()
         uiState.mainFrame:Show()
         uiState.visible = true
         FK.db.settings.showUI = true
+        uiState.goldElapsed = 10  -- force immediate gold/hr refresh on first UpdatePanel
         self:Update()
     end
 end
