@@ -283,15 +283,27 @@ end
 function FK:CreateBackup()
     if not FK.db or not FK.chardb then return end
 
-    -- Deep copy global DB excluding the backup key to prevent recursive growth
-    local dbCopy = FK:TableCopyExcluding(FK.db, { backup = true })
-    local charCopy = FK:TableCopyExcluding(FK.chardb, { backup = true })
+    -- Exclude large re-buildable arrays so the backup doesn't double SavedVariables size.
+    -- Backed up: settings, globalStats counters/fishCaught, gear sets, goals, releaseList.
+    -- NOT backed up: lootHistory (500 items), sessions (50), biteTimings, poolLocations,
+    --                ahPrices — all can be rebuilt by playing or rescanning.
+    local dbCopy = FK:TableCopyExcluding(FK.db, {
+        backup        = true,
+        poolLocations = true,
+        ahPrices      = true,
+    })
+    local charCopy = FK:TableCopyExcluding(FK.chardb, {
+        backup       = true,
+        lootHistory  = true,
+        sessions     = true,
+        biteTimings  = true,
+    })
 
     FK.db.backup = dbCopy
     FK.chardb.backup = charCopy
     FK.db.lastBackupTime = time()
 
-    FK:Print("Backup saved.", FK.Colors.success)
+    FK:Print("Backup saved (settings + stats; history arrays excluded).", FK.Colors.success)
 end
 
 function FK:RestoreBackup()
@@ -338,7 +350,7 @@ function FK:GetBackupInfo()
         ageStr = string.format("%.1f days ago", age / 86400)
     end
 
-    FK:Print("Last backup: " .. date("%Y-%m-%d %H:%M", FK.db.lastBackupTime) .. " (" .. ageStr .. ")")
+    FK:Print("Last backup: " .. date("%Y-%m-%d %H:%M", FK.db.lastBackupTime) .. " (" .. ageStr .. ") — covers settings and stats counters; lootHistory/sessions not included.")
 end
 
 function FK:CheckAutoBackup()
