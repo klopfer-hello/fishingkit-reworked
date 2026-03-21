@@ -319,13 +319,19 @@ function Config:CreateAlertsTab(parent)
     yOffset = yOffset - 24
 
     -- Enhanced sound
-    local enhancedSoundCheck = self:CreateCheckbox(panel, "Boost splash sound while fishing", yOffset, function(checked)
+    local enhancedSoundCheck = self:CreateCheckbox(panel, "Enhance sounds while fishing (mute music/ambience, boost SFX)", yOffset, function(checked)
         FK.db.settings.enhancedSound = checked
         if not checked and FK.Alerts then
             FK.Alerts:RestoreFishingSound()
         end
     end, function() return FK.db.settings.enhancedSound end)
     yOffset = yOffset - ROW_HEIGHT
+
+    -- SFX volume level while fishing
+    local soundScaleSlider = self:CreateSlider(panel, "SFX volume while fishing", yOffset, 0.1, 1.0, 0.1, function(value)
+        FK.db.settings.enhanceSoundScale = value
+    end, function() return FK.db.settings.enhanceSoundScale or 1.0 end)
+    yOffset = yOffset - 52
 
     -- Missing lure warning
     local lureWarningCheck = self:CreateCheckbox(panel, "Warn when fishing without a lure", yOffset, function(checked)
@@ -913,6 +919,7 @@ function Config:ResetToDefaults()
         autoCombatSwap = true,
         doubleClickCast = true,
         enhancedSound = true,
+        enhanceSoundScale = 1.0,
         missingLureWarning = true,
         missingLureInterval = 60,
         milestones = true,

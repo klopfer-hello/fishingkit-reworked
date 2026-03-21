@@ -26,12 +26,24 @@ local alertState = {
     lureWarned = false,
     watchFrame = nil,
     -- Enhanced sound state
-    savedSFXVolume = nil,
-    savedAmbienceVolume = nil,
     soundBoosted = false,
     -- Missing lure warning state
     lastLureWarningTime = 0,
 }
+
+-- CVars to mute/restore when enhanced fishing sound is active.
+-- Same list as BetterFishing's CVarCacheSounds.
+local soundCVarList = {
+    "Sound_MasterVolume",
+    "Sound_SFXVolume",
+    "Sound_EnableAmbience",
+    "Sound_MusicVolume",
+    "Sound_EnableAllSound",
+    "Sound_EnablePetSounds",
+    "Sound_EnableSoundWhenGameIsInBG",
+    "Sound_EnableSFX",
+}
+local soundCVarCache = {}
 
 -- Sound file paths (TBC compatible)
 -- Using sound kit IDs that work in TBC
@@ -312,51 +324,49 @@ function Alerts:OnRareCatch(itemName, quality)
 end
 
 -- ============================================================================
--- Enhanced Fishing Sound (boost splash volume)
+-- Enhanced Fishing Sound
+-- Mutes music, ambience and pet sounds; boosts SFX + master to a configured
+-- level so the bobber splash is easy to hear. Mirrors BetterFishing's
+-- EnhanceSounds approach so the two addons behave consistently.
 -- ============================================================================
 
 function Alerts:BoostFishingSound()
     if not FK.db or not FK.db.settings.enhancedSound then return end
     if alertState.soundBoosted then return end
 
-    -- Save current volumes (GetCVar returns string in TBC Classic)
-    local sfx = GetCVar("Sound_SFXVolume")
-    local ambience = GetCVar("Sound_AmbienceVolume")
-
-    -- Only save if we got valid values
-    if not sfx then
-        FK:Debug("Could not read Sound_SFXVolume CVar, skipping boost")
-        return
+    -- Snapshot all sound CVars before changing anything
+    for _, cvar in ipairs(soundCVarList) do
+        soundCVarCache[cvar] = GetCVar(cvar)
     end
 
-    alertState.savedSFXVolume = sfx
-    alertState.savedAmbienceVolume = ambience
-
-    -- Boost SFX to max for splash detection
-    pcall(SetCVar, "Sound_SFXVolume", "1")
-    if ambience then
-        local ambienceNum = tonumber(ambience) or 0.6
-        pcall(SetCVar, "Sound_AmbienceVolume", tostring(math.min(1.0, ambienceNum + 0.2)))
+    -- Mute everything first
+    for _, cvar in ipairs(soundCVarList) do
+        SetCVar(cvar, 0)
     end
+
+    -- Re-enable SFX only, at the configured volume level
+    local scale = FK.db.settings.enhanceSoundScale or 1.0
+    SetCVar("Sound_EnableAllSound", 1)
+    SetCVar("Sound_EnableSFX", 1)
+    SetCVar("Sound_EnableSoundWhenGameIsInBG", 1)
+    SetCVar("Sound_SFXVolume", tostring(scale))
+    SetCVar("Sound_MasterVolume", tostring(scale))
 
     alertState.soundBoosted = true
-    FK:Debug("Fishing sound boosted (SFX: " .. tostring(sfx) .. " -> 1)")
+    FK:Debug("Fishing sound enhanced (scale=" .. tostring(scale) .. ")")
 end
 
 function Alerts:RestoreFishingSound()
     if not alertState.soundBoosted then return end
 
-    -- Restore saved volumes
-    if alertState.savedSFXVolume then
-        pcall(SetCVar, "Sound_SFXVolume", alertState.savedSFXVolume)
-    end
-    if alertState.savedAmbienceVolume then
-        pcall(SetCVar, "Sound_AmbienceVolume", alertState.savedAmbienceVolume)
+    -- Restore all CVars to pre-boost values
+    for _, cvar in ipairs(soundCVarList) do
+        if soundCVarCache[cvar] then
+            SetCVar(cvar, soundCVarCache[cvar])
+        end
     end
 
     alertState.soundBoosted = false
-    alertState.savedSFXVolume = nil
-    alertState.savedAmbienceVolume = nil
     FK:Debug("Fishing sound restored")
 end
 
