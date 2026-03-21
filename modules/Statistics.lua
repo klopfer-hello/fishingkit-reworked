@@ -866,6 +866,21 @@ end
 -- Comprehensive Statistics Panel
 -- ============================================================================
 
+-- Design palette — mirrors UI.lua's local D table exactly
+local D = {
+    bg       = {0.04, 0.04, 0.06},  bgA  = 0.92,
+    border   = {0.18, 0.18, 0.23},  borA = 0.80,
+    divider  = {0.14, 0.14, 0.18},  divA = 0.90,
+    accent   = {0.28, 0.74, 0.97},
+    label    = {0.40, 0.40, 0.45},
+    value    = {0.82, 0.84, 0.88},
+    success  = {0.26, 0.76, 0.42},
+    warn     = {0.95, 0.64, 0.10},
+    danger   = {0.90, 0.30, 0.30},
+    gold     = {1.00, 0.82, 0.00},
+    barBg    = {0.07, 0.07, 0.09},
+}
+
 local statsPanel = {
     frame = nil,
     currentTab = "overview",
@@ -887,33 +902,42 @@ function Stats:CreateStatsPanel()
     frame:SetScript("OnDragStart", frame.StartMoving)
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 
-    -- Backdrop
-    local backdropInfo = {
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
-        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 24,
-        insets = { left = 6, right = 6, top = 6, bottom = 6 }
-    }
-
+    -- Backdrop — matches main panel exactly
     if frame.SetBackdrop then
-        frame:SetBackdrop(backdropInfo)
-        frame:SetBackdropColor(0.05, 0.05, 0.1, 0.95)
+        frame:SetBackdrop({
+            bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 16, edgeSize = 8,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+        frame:SetBackdropColor(D.bg[1], D.bg[2], D.bg[3], D.bgA)
+        frame:SetBackdropBorderColor(D.border[1], D.border[2], D.border[3], D.borA)
+    else
+        local bg = frame:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(D.bg[1], D.bg[2], D.bg[3], D.bgA)
     end
 
-    -- Title
-    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOP", frame, "TOP", 0, -12)
-    title:SetText("|cFF00D1FFFishingKit|r - Statistics")
+    -- Title — plain text, no filled bar (matches main panel)
+    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -10)
+    title:SetText("|cFF47BEF5FishingKit|r  Statistics")
     frame.title = title
 
     -- Close button
     local closeBtn = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-    closeBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, -4)
+    closeBtn:SetSize(20, 20)
+    closeBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 2, 2)
     closeBtn:SetScript("OnClick", function()
         frame:Hide()
     end)
+
+    -- Divider under title
+    local titleDiv = frame:CreateTexture(nil, "ARTWORK")
+    titleDiv:SetHeight(1)
+    titleDiv:SetPoint("TOPLEFT",  frame, "TOPLEFT",  8, -28)
+    titleDiv:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -28)
+    titleDiv:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
 
     -- Tab buttons
     local tabs = {
@@ -926,49 +950,62 @@ function Stats:CreateStatsPanel()
 
     local tabWidth = 80
     local tabContainer = CreateFrame("Frame", nil, frame)
-    tabContainer:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -40)
-    tabContainer:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -10, -40)
-    tabContainer:SetHeight(28)
+    tabContainer:SetPoint("TOPLEFT",  frame, "TOPLEFT",  8, -32)
+    tabContainer:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -32)
+    tabContainer:SetHeight(22)
 
     frame.tabs = {}
     for i, tabInfo in ipairs(tabs) do
         local tab = CreateFrame("Button", nil, tabContainer)
-        tab:SetSize(tabWidth, 24)
-        tab:SetPoint("LEFT", tabContainer, "LEFT", (i - 1) * (tabWidth + 4), 0)
+        tab:SetSize(tabWidth, 22)
+        tab:SetPoint("LEFT", tabContainer, "LEFT", (i - 1) * (tabWidth + 2), 0)
 
         local bg = tab:CreateTexture(nil, "BACKGROUND")
         bg:SetAllPoints()
-        bg:SetColorTexture(0.2, 0.2, 0.3, 0.8)
+        bg:SetColorTexture(D.barBg[1], D.barBg[2], D.barBg[3], 0)
         tab.bg = bg
 
-        local text = tab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        local accent = tab:CreateTexture(nil, "BORDER")
+        accent:SetPoint("BOTTOMLEFT",  tab, "BOTTOMLEFT",  0, 0)
+        accent:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
+        accent:SetHeight(2)
+        accent:SetColorTexture(D.accent[1], D.accent[2], D.accent[3], 0)
+        tab.accent = accent
+
+        local text = tab:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         text:SetPoint("CENTER")
         text:SetText(tabInfo.label)
+        text:SetTextColor(D.label[1], D.label[2], D.label[3])
         tab.text = text
 
         tab:SetScript("OnClick", function()
             Stats:ShowTab(tabInfo.id)
         end)
-
         tab:SetScript("OnEnter", function(self)
             if statsPanel.currentTab ~= tabInfo.id then
-                self.bg:SetColorTexture(0.3, 0.3, 0.4, 0.9)
+                self.text:SetTextColor(D.value[1], D.value[2], D.value[3])
             end
         end)
-
         tab:SetScript("OnLeave", function(self)
             if statsPanel.currentTab ~= tabInfo.id then
-                self.bg:SetColorTexture(0.2, 0.2, 0.3, 0.8)
+                self.text:SetTextColor(D.label[1], D.label[2], D.label[3])
             end
         end)
 
         frame.tabs[tabInfo.id] = tab
     end
 
+    -- Divider under tabs
+    local tabDiv = frame:CreateTexture(nil, "ARTWORK")
+    tabDiv:SetHeight(1)
+    tabDiv:SetPoint("TOPLEFT",  frame, "TOPLEFT",  8, -56)
+    tabDiv:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -56)
+    tabDiv:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
+
     -- Content area
     local content = CreateFrame("Frame", nil, frame)
-    content:SetPoint("TOPLEFT", frame, "TOPLEFT", 12, -72)
-    content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -12, 12)
+    content:SetPoint("TOPLEFT",     frame, "TOPLEFT",  10, -60)
+    content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -10, 8)
     frame.content = content
 
     -- Create scroll frame for content
@@ -994,11 +1031,11 @@ function Stats:ShowTab(tabID)
     -- Update tab appearance
     for id, tab in pairs(statsPanel.frame.tabs) do
         if id == tabID then
-            tab.bg:SetColorTexture(0.1, 0.4, 0.7, 1)
-            tab.text:SetTextColor(1, 1, 1)
+            tab.accent:SetColorTexture(D.accent[1], D.accent[2], D.accent[3], 1)
+            tab.text:SetTextColor(D.value[1], D.value[2], D.value[3])
         else
-            tab.bg:SetColorTexture(0.2, 0.2, 0.3, 0.8)
-            tab.text:SetTextColor(0.7, 0.7, 0.7)
+            tab.accent:SetColorTexture(D.accent[1], D.accent[2], D.accent[3], 0)
+            tab.text:SetTextColor(D.label[1], D.label[2], D.label[3])
         end
     end
 
@@ -1036,7 +1073,7 @@ function Stats:PopulateOverviewTab(parent)
     -- Session Statistics Section
     local sessionHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     sessionHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-    sessionHeader:SetText("|cFFFFD700Current Session|r")
+    sessionHeader:SetText("|cFF47BEF5Current Session|r")
     yOffset = yOffset - 25
 
     local sessionInfo = {
@@ -1054,7 +1091,7 @@ function Stats:PopulateOverviewTab(parent)
         local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         label:SetPoint("TOPLEFT", parent, "TOPLEFT", 20, yOffset)
         label:SetText(info[1])
-        label:SetTextColor(0.7, 0.7, 0.7)
+        label:SetTextColor(D.label[1], D.label[2], D.label[3])
 
         local value = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         value:SetPoint("TOPLEFT", parent, "TOPLEFT", 140, yOffset)
@@ -1071,7 +1108,7 @@ function Stats:PopulateOverviewTab(parent)
     -- Lifetime Statistics Section
     local totalHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     totalHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-    totalHeader:SetText("|cFFFFD700Lifetime Statistics|r")
+    totalHeader:SetText("|cFF47BEF5Lifetime Statistics|r")
     yOffset = yOffset - 25
 
     local totalInfo = {
@@ -1088,7 +1125,7 @@ function Stats:PopulateOverviewTab(parent)
         local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         label:SetPoint("TOPLEFT", parent, "TOPLEFT", 20, yOffset)
         label:SetText(info[1])
-        label:SetTextColor(0.7, 0.7, 0.7)
+        label:SetTextColor(D.label[1], D.label[2], D.label[3])
 
         local value = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         value:SetPoint("TOPLEFT", parent, "TOPLEFT", 140, yOffset)
@@ -1105,7 +1142,7 @@ function Stats:PopulateOverviewTab(parent)
     -- Current Skill Section
     local skillHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     skillHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-    skillHeader:SetText("|cFFFFD700Current Skill|r")
+    skillHeader:SetText("|cFF47BEF5Current Skill|r")
     yOffset = yOffset - 25
 
     local skillText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -1123,13 +1160,13 @@ function Stats:PopulateOverviewTab(parent)
     yOffset = yOffset - 10
     local goldHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     goldHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-    goldHeader:SetText("|cFFFFD700Session Gold|r")
+    goldHeader:SetText("|cFF47BEF5Session Gold|r")
     yOffset = yOffset - 25
 
     local blendedGold = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     blendedGold:SetPoint("TOPLEFT", parent, "TOPLEFT", 20, yOffset)
     local blendedCop = session.blendedCopper or 0
-    blendedGold:SetText("Est. Value: |cFFFFD700" .. FK:FormatCopper(math.floor(blendedCop)) .. "|r (" .. FK:FormatCopper(math.floor(session.blendedPerHour or 0)) .. "/hr)")
+    blendedGold:SetText("Est. Value: |cFF47BEF5" .. FK:FormatCopper(math.floor(blendedCop)) .. "|r (" .. FK:FormatCopper(math.floor(session.blendedPerHour or 0)) .. "/hr)")
     yOffset = yOffset - 18
 
     local vendorGold = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -1152,7 +1189,7 @@ function Stats:PopulateOverviewTab(parent)
         yOffset = yOffset - 10
         local trendHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         trendHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-        trendHeader:SetText("|cFFFFD700Efficiency Trend|r |cFF888888(fish/hr per 5 min)|r")
+        trendHeader:SetText("|cFF47BEF5Efficiency Trend|r |cFF888888(fish/hr per 5 min)|r")
         yOffset = yOffset - 22
 
         -- Find max for scaling the bar graph
@@ -1215,7 +1252,7 @@ function Stats:PopulateFishTab(parent)
     if #fishList == 0 then
         local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         header:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-        header:SetText("|cFFFFD700Fish Caught (All Time)|r")
+        header:SetText("|cFF47BEF5Fish Caught (All Time)|r")
         yOffset = yOffset - 25
 
         local noData = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -1228,7 +1265,7 @@ function Stats:PopulateFishTab(parent)
         -- ================================================================
         local topHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         topHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-        topHeader:SetText("|cFFFFD700Top 5 Catches|r")
+        topHeader:SetText("|cFF47BEF5Top 5 Catches|r")
         yOffset = yOffset - 22
 
         local topCount = math.min(5, #fishList)
@@ -1239,7 +1276,7 @@ function Stats:PopulateFishTab(parent)
 
             local rankText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             rankText:SetPoint("TOPLEFT", parent, "TOPLEFT", 20, yOffset)
-            rankText:SetText("|cFFFFD700" .. i .. ".|r")
+            rankText:SetText("|cFF47BEF5" .. i .. ".|r")
 
             local nameText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             nameText:SetPoint("TOPLEFT", parent, "TOPLEFT", 40, yOffset)
@@ -1248,11 +1285,11 @@ function Stats:PopulateFishTab(parent)
 
             local countText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             countText:SetPoint("TOPLEFT", parent, "TOPLEFT", 250, yOffset)
-            countText:SetText("|cFFFFD700x" .. FK:FormatNumber(fish.count) .. "|r")
+            countText:SetText("|cFF47BEF5x" .. FK:FormatNumber(fish.count) .. "|r")
 
             local pctText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             pctText:SetPoint("TOPLEFT", parent, "TOPLEFT", 310, yOffset)
-            pctText:SetText("|cFFFFD700" .. pct .. "|r")
+            pctText:SetText("|cFF47BEF5" .. pct .. "|r")
 
             yOffset = yOffset - 18
         end
@@ -1262,7 +1299,7 @@ function Stats:PopulateFishTab(parent)
         local sep1 = parent:CreateTexture(nil, "ARTWORK")
         sep1:SetPoint("TOPLEFT", parent, "TOPLEFT", 15, yOffset)
         sep1:SetSize(380, 1)
-        sep1:SetColorTexture(0.4, 0.4, 0.4, 1)
+        sep1:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
         yOffset = yOffset - 10
 
         -- ================================================================
@@ -1270,7 +1307,7 @@ function Stats:PopulateFishTab(parent)
         -- ================================================================
         local rareHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         rareHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-        rareHeader:SetText("|cFFFFD700Rare Fish|r")
+        rareHeader:SetText("|cFF47BEF5Rare Fish|r")
         yOffset = yOffset - 22
 
         -- Build list of all rare fish from database
@@ -1323,7 +1360,7 @@ function Stats:PopulateFishTab(parent)
                 local pctText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
                 pctText:SetPoint("TOPLEFT", parent, "TOPLEFT", 310, yOffset)
                 pctText:SetText(pct)
-                pctText:SetTextColor(0.6, 0.6, 0.6)
+                pctText:SetTextColor(D.label[1], D.label[2], D.label[3])
             else
                 nameText:SetText("|cFF666666" .. fish.name .. "|r")
 
@@ -1340,7 +1377,7 @@ function Stats:PopulateFishTab(parent)
         local sep1b = parent:CreateTexture(nil, "ARTWORK")
         sep1b:SetPoint("TOPLEFT", parent, "TOPLEFT", 15, yOffset)
         sep1b:SetSize(380, 1)
-        sep1b:SetColorTexture(0.4, 0.4, 0.4, 1)
+        sep1b:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
         yOffset = yOffset - 10
 
         -- ================================================================
@@ -1348,31 +1385,31 @@ function Stats:PopulateFishTab(parent)
         -- ================================================================
         local allHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         allHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-        allHeader:SetText("|cFFFFD700All Catches|r")
+        allHeader:SetText("|cFF47BEF5All Catches|r")
         yOffset = yOffset - 22
 
         -- Column headers
         local nameHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         nameHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 20, yOffset)
         nameHeader:SetText("Fish")
-        nameHeader:SetTextColor(0.8, 0.8, 0.8)
+        nameHeader:SetTextColor(D.label[1], D.label[2], D.label[3])
 
         local countHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         countHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 250, yOffset)
         countHeader:SetText("Count")
-        countHeader:SetTextColor(0.8, 0.8, 0.8)
+        countHeader:SetTextColor(D.label[1], D.label[2], D.label[3])
 
         local pctHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         pctHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 310, yOffset)
         pctHeader:SetText("%")
-        pctHeader:SetTextColor(0.8, 0.8, 0.8)
+        pctHeader:SetTextColor(D.label[1], D.label[2], D.label[3])
 
         yOffset = yOffset - 20
 
         local sep2 = parent:CreateTexture(nil, "ARTWORK")
         sep2:SetPoint("TOPLEFT", parent, "TOPLEFT", 15, yOffset)
         sep2:SetSize(380, 1)
-        sep2:SetColorTexture(0.4, 0.4, 0.4, 1)
+        sep2:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
         yOffset = yOffset - 8
 
         for i, fish in ipairs(fishList) do
@@ -1391,7 +1428,7 @@ function Stats:PopulateFishTab(parent)
             local pctText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             pctText:SetPoint("TOPLEFT", parent, "TOPLEFT", 310, yOffset)
             pctText:SetText(pct)
-            pctText:SetTextColor(0.6, 0.6, 0.6)
+            pctText:SetTextColor(D.label[1], D.label[2], D.label[3])
 
             yOffset = yOffset - 18
         end
@@ -1412,7 +1449,7 @@ function Stats:PopulateZoneFishTab(parent)
 
     local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     header:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-    header:SetText("|cFFFFD700Available Fish in:|r |cFFFFFFFF" .. zone .. "|r")
+    header:SetText("|cFF47BEF5Available Fish in:|r |cFFFFFFFF" .. zone .. "|r")
     yOffset = yOffset - 25
 
     -- Get fish for this zone from the database
@@ -1428,29 +1465,29 @@ function Stats:PopulateZoneFishTab(parent)
         local nameH = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         nameH:SetPoint("TOPLEFT", parent, "TOPLEFT", 20, yOffset)
         nameH:SetText("Fish")
-        nameH:SetTextColor(0.8, 0.8, 0.8)
+        nameH:SetTextColor(D.label[1], D.label[2], D.label[3])
 
         local skillH = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         skillH:SetPoint("TOPLEFT", parent, "TOPLEFT", 200, yOffset)
         skillH:SetText("Skill")
-        skillH:SetTextColor(0.8, 0.8, 0.8)
+        skillH:SetTextColor(D.label[1], D.label[2], D.label[3])
 
         local caughtH = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         caughtH:SetPoint("TOPLEFT", parent, "TOPLEFT", 250, yOffset)
         caughtH:SetText("Caught")
-        caughtH:SetTextColor(0.8, 0.8, 0.8)
+        caughtH:SetTextColor(D.label[1], D.label[2], D.label[3])
 
         local valueH = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         valueH:SetPoint("TOPLEFT", parent, "TOPLEFT", 320, yOffset)
         valueH:SetText("Value")
-        valueH:SetTextColor(0.8, 0.8, 0.8)
+        valueH:SetTextColor(D.label[1], D.label[2], D.label[3])
 
         yOffset = yOffset - 20
 
         local sep = parent:CreateTexture(nil, "ARTWORK")
         sep:SetPoint("TOPLEFT", parent, "TOPLEFT", 15, yOffset)
         sep:SetSize(380, 1)
-        sep:SetColorTexture(0.4, 0.4, 0.4, 1)
+        sep:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
         yOffset = yOffset - 8
 
         -- Sort by quality desc then min skill
@@ -1519,7 +1556,7 @@ function Stats:PopulateZoneFishTab(parent)
         yOffset = yOffset - 15
         local poolHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         poolHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-        poolHeader:SetText("|cFFFFD700Fishing Pools|r")
+        poolHeader:SetText("|cFF47BEF5Fishing Pools|r")
         yOffset = yOffset - 22
 
         for _, pool in ipairs(pools) do
@@ -1542,7 +1579,7 @@ function Stats:PopulateZoneFishTab(parent)
         yOffset = yOffset - 15
         local seasonHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         seasonHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-        seasonHeader:SetText("|cFFFFD700Seasonal Notes|r")
+        seasonHeader:SetText("|cFF47BEF5Seasonal Notes|r")
         yOffset = yOffset - 22
         for _, sf in ipairs(seasonalFish) do
             local note = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -1561,29 +1598,29 @@ function Stats:PopulateZonesTab(parent)
 
     local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     header:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-    header:SetText("|cFFFFD700Fishing by Zone|r")
+    header:SetText("|cFF47BEF5Fishing by Zone|r")
     yOffset = yOffset - 25
 
     -- Column headers
     local zoneHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     zoneHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 20, yOffset)
     zoneHeader:SetText("Zone")
-    zoneHeader:SetTextColor(0.8, 0.8, 0.8)
+    zoneHeader:SetTextColor(D.label[1], D.label[2], D.label[3])
 
     local castsHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     castsHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 200, yOffset)
     castsHeader:SetText("Casts")
-    castsHeader:SetTextColor(0.8, 0.8, 0.8)
+    castsHeader:SetTextColor(D.label[1], D.label[2], D.label[3])
 
     local catchesHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     catchesHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 270, yOffset)
     catchesHeader:SetText("Catches")
-    catchesHeader:SetTextColor(0.8, 0.8, 0.8)
+    catchesHeader:SetTextColor(D.label[1], D.label[2], D.label[3])
 
     local rateHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     rateHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 350, yOffset)
     rateHeader:SetText("Rate")
-    rateHeader:SetTextColor(0.8, 0.8, 0.8)
+    rateHeader:SetTextColor(D.label[1], D.label[2], D.label[3])
 
     yOffset = yOffset - 20
 
@@ -1591,7 +1628,7 @@ function Stats:PopulateZonesTab(parent)
     local sep = parent:CreateTexture(nil, "ARTWORK")
     sep:SetPoint("TOPLEFT", parent, "TOPLEFT", 15, yOffset)
     sep:SetSize(380, 1)
-    sep:SetColorTexture(0.4, 0.4, 0.4, 1)
+    sep:SetColorTexture(D.divider[1], D.divider[2], D.divider[3], D.divA)
     yOffset = yOffset - 8
 
     -- Get zone stats and sort by catches
@@ -1674,7 +1711,7 @@ function Stats:PopulateHistoryTab(parent)
     -- Recent Catches
     local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     header:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-    header:SetText("|cFFFFD700Recent Catches|r")
+    header:SetText("|cFF47BEF5Recent Catches|r")
     yOffset = yOffset - 25
 
     if FK.chardb and FK.chardb.lootHistory and #FK.chardb.lootHistory > 0 then
@@ -1717,7 +1754,7 @@ function Stats:PopulateHistoryTab(parent)
     -- Rare Catches
     local rareHeader = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     rareHeader:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
-    rareHeader:SetText("|cFFFFD700Rare Catches|r")
+    rareHeader:SetText("|cFF47BEF5Rare Catches|r")
     yOffset = yOffset - 25
 
     local rareCatches = self:GetRecentRareCatches(10)
