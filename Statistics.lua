@@ -417,6 +417,10 @@ function Stats:SaveSession()
             junk = sessionData.junk,
             skillUps = sessionData.skillUps,
             timestamp = time(),
+            fishCaught = FK:TableCopy(sessionData.fishCaught),
+            vendorCopper = sessionData.vendorCopper or 0,
+            ahCopper = sessionData.ahCopper or 0,
+            blendedCopper = sessionData.blendedCopper or 0,
         })
 
         -- Keep only last 50 sessions
