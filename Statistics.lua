@@ -1107,7 +1107,7 @@ function Stats:PopulateOverviewTab(parent)
 
     local vendorGold = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     vendorGold:SetPoint("TOPLEFT", parent, "TOPLEFT", 30, yOffset)
-    vendorGold:SetText("|cFF888888Vendor: " .. FK:FormatCopper(math.floor(session.vendorCopper or 0)) .. "/hr|r")
+    vendorGold:SetText("|cFF888888Vendor: " .. FK:FormatCopper(math.floor(session.vendorPerHour or 0)) .. "/hr|r")
     yOffset = yOffset - 16
 
     local ahGold = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
