@@ -40,6 +40,10 @@ local sessionData = {
 -- Milestone thresholds for celebration
 local MILESTONES = { 100, 250, 500, 1000, 2500, 5000, 10000 }
 
+-- Cache for GetBiteConfidence per zone — invalidated whenever RecordBiteTime adds a new entry.
+-- Avoids allocating+sorting a copy of biteTimings on every UI update (10×/s while fishing).
+local biteConfidenceCache = {}
+
 -- ============================================================================
 -- Initialization
 -- ============================================================================
@@ -706,6 +710,9 @@ function Stats:RecordBiteTime()
         table.remove(FK.chardb.biteTimings[zone], 1)
     end
 
+    -- Invalidate the cache for this zone so GetBiteConfidence recomputes on next call
+    biteConfidenceCache[zone] = nil
+
     FK:Debug("Bite time recorded: " .. string.format("%.1f", elapsed) .. "s in " .. zone)
 end
 
@@ -716,10 +723,14 @@ function Stats:GetBiteConfidence(zone)
     local timings = FK.chardb.biteTimings[zone]
     if not timings or #timings < 5 then return nil end
 
-    -- Sort a copy
+    if biteConfidenceCache[zone] then
+        return biteConfidenceCache[zone]
+    end
+
+    -- Sort a copy to find percentiles
     local sorted = {}
     for _, v in ipairs(timings) do
-        table.insert(sorted, v)
+        sorted[#sorted + 1] = v
     end
     table.sort(sorted)
 
@@ -731,12 +742,13 @@ function Stats:GetBiteConfidence(zone)
     -- Median (50th percentile)
     local medianIndex = math.max(1, math.floor(n * 0.5 + 0.5))
 
-    return {
+    biteConfidenceCache[zone] = {
         low = sorted[p35Index],
         high = sorted[p65Index],
         median = sorted[medianIndex],
         samples = n,
     }
+    return biteConfidenceCache[zone]
 end
 
 -- ============================================================================
