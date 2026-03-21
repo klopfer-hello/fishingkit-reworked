@@ -33,7 +33,7 @@ if not GetContainerNumSlots and C_Container then
 end
 
 -- Version info
-FK.VERSION = "1.0.11"
+FK.VERSION = "1.0.12"
 FK.BUILD = "TBC-Anniversary"
 
 -- Addon state

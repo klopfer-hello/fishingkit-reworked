@@ -1,5 +1,18 @@
 # FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.0.12
+
+### Changes
+- **Updated interface version to 20505** (TBC Classic Anniversary 2.5.5)
+- **Fixed catch tracking reliability** — replaced intermittent bag-diff approach with `LOOT_READY` + `IsFishingLoot()` (Blizzard built-in API). `LOOT_READY` fires before auto-loot processes items so the loot table is always populated. Catches are now tracked consistently regardless of auto-loot settings or player reaction time.
+
+### Files Modified
+- `FishingKit.toc` (interface 20504 → 20505, version 1.0.11 → 1.0.12)
+- `Core.lua` (version string, LOOT_READY event registration and handler)
+- `Statistics.lua` (OnLootReady replaces TakeBagSnapshot/OnLootClosed bag-diff logic)
+
+---
+
 ## v1.0.11
 
 ### Improvements
