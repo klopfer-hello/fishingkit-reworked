@@ -308,8 +308,8 @@ function Stats:RecordRareCatch(lootData, zone)
             timestamp = time(),
         })
 
-        -- Keep only last 100 rare catches
-        while #FK.chardb.stats.rareCatches > 100 do
+        -- Keep only last 100 rare catches (one item inserted at a time, so if suffices)
+        if #FK.chardb.stats.rareCatches > 100 then
             table.remove(FK.chardb.stats.rareCatches, 1)
         end
     end
@@ -342,8 +342,8 @@ function Stats:AddToLootHistory(lootData, zone)
             timestamp = time(),
         })
 
-        -- Keep only last 500 items
-        while #FK.chardb.lootHistory > 500 do
+        -- Keep only last 500 items (one item inserted at a time, so if suffices)
+        if #FK.chardb.lootHistory > 500 then
             table.remove(FK.chardb.lootHistory, 1)
         end
     end
@@ -394,8 +394,8 @@ function Stats:SaveSession()
             blendedCopper = sessionData.blendedCopper or 0,
         })
 
-        -- Keep only last 50 sessions
-        while #FK.chardb.sessions > 50 do
+        -- Keep only last 50 sessions (one session inserted at a time, so if suffices)
+        if #FK.chardb.sessions > 50 then
             table.remove(FK.chardb.sessions, 1)
         end
     end
@@ -686,8 +686,8 @@ function Stats:RecordBiteTime()
 
     table.insert(FK.chardb.biteTimings[zone], elapsed)
 
-    -- Keep only last 50 per zone
-    while #FK.chardb.biteTimings[zone] > 50 do
+    -- Keep only last 50 per zone (one item inserted at a time, so if suffices)
+    if #FK.chardb.biteTimings[zone] > 50 then
         table.remove(FK.chardb.biteTimings[zone], 1)
     end
 
