@@ -151,7 +151,7 @@ function Stats:OnLootOpened()
     -- Scan the loot window
     local numItems = GetNumLootItems()
     for i = 1, numItems do
-        local lootIcon, lootName, lootQuantity, currencyID, lootQuality, locked, isQuestItem, questId, isActive = GetLootSlotInfo(i)
+        local lootIcon, lootName, lootQuantity, lootQuality, locked, isQuestItem, questId, isActive = GetLootSlotInfo(i)
         local lootLink = GetLootSlotLink(i)
 
         if lootLink then
