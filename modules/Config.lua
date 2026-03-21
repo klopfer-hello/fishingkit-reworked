@@ -22,11 +22,72 @@ local configState = {
 }
 
 -- UI Constants
-local FRAME_WIDTH = 400
-local FRAME_HEIGHT = 550
-local PADDING = 12
-local ROW_HEIGHT = 28
-local CHECKBOX_SIZE = 24
+local FRAME_WIDTH   = 400
+local FRAME_HEIGHT  = 550
+local PADDING       = 14
+local ROW_HEIGHT    = 24
+local CHECKBOX_SIZE = 22
+
+-- Design palette (mirrors UI.lua)
+local CD = {
+    bg      = {0.04, 0.04, 0.06},  bgA  = 0.93,
+    border  = {0.18, 0.18, 0.23},  borA = 0.80,
+    divider = {0.14, 0.14, 0.18},  divA = 0.90,
+    accent  = {0.28, 0.74, 0.97},
+    label   = {0.40, 0.40, 0.45},
+    value   = {0.82, 0.84, 0.88},
+    success = {0.26, 0.76, 0.42},
+    barBg   = {0.07, 0.07, 0.09},
+}
+
+-- Draw a 1 px border around any frame using 4 edge textures
+local function AddThinBorder(f, r, g, b, a)
+    local t  = f:CreateTexture(nil,"OVERLAY"); t:SetPoint("TOPLEFT");     t:SetPoint("TOPRIGHT");    t:SetHeight(1); t:SetColorTexture(r,g,b,a)
+    local bb = f:CreateTexture(nil,"OVERLAY"); bb:SetPoint("BOTTOMLEFT"); bb:SetPoint("BOTTOMRIGHT"); bb:SetHeight(1); bb:SetColorTexture(r,g,b,a)
+    local l  = f:CreateTexture(nil,"OVERLAY"); l:SetPoint("TOPLEFT");     l:SetPoint("BOTTOMLEFT");  l:SetWidth(1);  l:SetColorTexture(r,g,b,a)
+    local rr = f:CreateTexture(nil,"OVERLAY"); rr:SetPoint("TOPRIGHT");   rr:SetPoint("BOTTOMRIGHT"); rr:SetWidth(1); rr:SetColorTexture(r,g,b,a)
+end
+
+-- Section header: dim uppercase label + 1 px separator line
+function Config:CreateSectionHeader(parent, text, yOffset)
+    local lbl = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    lbl:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
+    lbl:SetText(text)
+    lbl:SetTextColor(CD.label[1], CD.label[2], CD.label[3])
+
+    local line = parent:CreateTexture(nil, "ARTWORK")
+    line:SetHeight(1)
+    line:SetPoint("TOPLEFT",  parent, "TOPLEFT",  0, yOffset - 14)
+    line:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, yOffset - 14)
+    line:SetColorTexture(CD.divider[1], CD.divider[2], CD.divider[3], CD.divA)
+
+    return yOffset - 22
+end
+
+-- Flat dark action button (replaces UIPanelButtonTemplate)
+function Config:CreateConfigButton(parent, text, width, height)
+    local btn = CreateFrame("Button", nil, parent)
+    btn:SetSize(width or 120, height or 22)
+
+    local bg = btn:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.10, 0.10, 0.13, 1)
+    btn.bg = bg
+
+    AddThinBorder(btn, CD.border[1], CD.border[2], CD.border[3], CD.borA)
+
+    local lbl = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    lbl:SetAllPoints()
+    lbl:SetJustifyH("CENTER")
+    lbl:SetText(text)
+    lbl:SetTextColor(CD.value[1], CD.value[2], CD.value[3])
+    btn.label = lbl
+
+    btn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+    btn:GetHighlightTexture():SetBlendMode("ADD")
+
+    return btn
+end
 
 -- ============================================================================
 -- Initialization
@@ -48,32 +109,47 @@ function Config:CreateConfigFrame()
     frame:SetFrameStrata("DIALOG")
     frame:SetClampedToScreen(true)
 
-    -- Backdrop
-    local backdropInfo = {
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 24,
-        insets = { left = 6, right = 6, top = 6, bottom = 6 }
-    }
-
+    -- Clean dark backdrop, thin tooltip border
     if frame.SetBackdrop then
-        frame:SetBackdrop(backdropInfo)
-        frame:SetBackdropColor(0, 0, 0, 0.95)
+        frame:SetBackdrop({
+            bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 16, edgeSize = 8,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+        frame:SetBackdropColor(CD.bg[1], CD.bg[2], CD.bg[3], CD.bgA)
+        frame:SetBackdropBorderColor(CD.border[1], CD.border[2], CD.border[3], CD.borA)
+    else
+        local bg = frame:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(CD.bg[1], CD.bg[2], CD.bg[3], CD.bgA)
     end
 
-    -- Title
-    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOP", frame, "TOP", 0, -16)
-    title:SetText("|cFF00D1FFFishingKit|r Options")
+    -- Title: "FishingKit" accent, "Settings" dim, left-aligned
+    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, -PADDING)
+    title:SetText("|cFF47BEF5FishingKit|r  |cFF66666BSettings|r")
 
-    -- Close button
-    local closeBtn = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-    closeBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, -4)
-    closeBtn:SetScript("OnClick", function()
-        Config:Hide()
-    end)
+    -- Close button (custom small × text button)
+    local closeBtn = CreateFrame("Button", nil, frame)
+    closeBtn:SetSize(20, 20)
+    closeBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING + 4, -PADDING + 2)
+    local closeX = closeBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    closeX:SetAllPoints()
+    closeX:SetJustifyH("CENTER")
+    closeX:SetText("|cFF66666B×|r")
+    closeBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+    closeBtn:GetHighlightTexture():SetBlendMode("ADD")
+    closeBtn:SetScript("OnClick", function() Config:Hide() end)
+    closeBtn:SetScript("OnEnter", function(self) closeX:SetText("|cFFCCCCCC×|r") end)
+    closeBtn:SetScript("OnLeave", function(self) closeX:SetText("|cFF66666B×|r") end)
+
+    -- Title divider
+    local titleDiv = frame:CreateTexture(nil, "ARTWORK")
+    titleDiv:SetHeight(1)
+    titleDiv:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING, -(PADDING + 20))
+    titleDiv:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(PADDING + 20))
+    titleDiv:SetColorTexture(CD.divider[1], CD.divider[2], CD.divider[3], CD.divA)
 
     -- Make draggable
     frame:SetMovable(true)
@@ -82,20 +158,46 @@ function Config:CreateConfigFrame()
     frame:SetScript("OnDragStart", frame.StartMoving)
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 
-    -- Tab buttons
+    -- Custom flat tab buttons
     local tabs = { "General", "Alerts", "Gear", "Pools", "Routes", "Stats" }
     local tabButtons = {}
-    local tabWidth = (FRAME_WIDTH - PADDING * 2 - 8) / #tabs
+    local tabWidth = (FRAME_WIDTH - PADDING * 2) / #tabs
 
     for i, tabName in ipairs(tabs) do
-        local tabBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-        tabBtn:SetSize(tabWidth, 24)
+        local tabBtn = CreateFrame("Button", nil, frame)
+        tabBtn:SetSize(tabWidth, 26)
         if i == 1 then
-            tabBtn:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, -44)
+            tabBtn:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING, -(PADDING + 24))
         else
-            tabBtn:SetPoint("LEFT", tabButtons[i-1], "RIGHT", 2, 0)
+            tabBtn:SetPoint("LEFT", tabButtons[i-1], "RIGHT", 0, 0)
         end
-        tabBtn:SetText(tabName)
+
+        -- Background
+        local tbg = tabBtn:CreateTexture(nil, "BACKGROUND")
+        tbg:SetAllPoints()
+        tbg:SetColorTexture(0.06, 0.06, 0.08, 1)
+        tabBtn.bg = tbg
+
+        -- Active accent underline (2px, hidden when inactive)
+        local tline = tabBtn:CreateTexture(nil, "OVERLAY")
+        tline:SetHeight(2)
+        tline:SetPoint("BOTTOMLEFT")
+        tline:SetPoint("BOTTOMRIGHT")
+        tline:SetColorTexture(CD.accent[1], CD.accent[2], CD.accent[3], 1)
+        tline:Hide()
+        tabBtn.line = tline
+
+        -- Label
+        local tlbl = tabBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        tlbl:SetAllPoints()
+        tlbl:SetJustifyH("CENTER")
+        tlbl:SetText(tabName)
+        tlbl:SetTextColor(CD.label[1], CD.label[2], CD.label[3])
+        tabBtn.label = tlbl
+
+        tabBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+        tabBtn:GetHighlightTexture():SetBlendMode("ADD")
+
         tabBtn.tabIndex = i
         tabBtn:SetScript("OnClick", function(self)
             Config:SelectTab(self.tabIndex)
@@ -104,10 +206,17 @@ function Config:CreateConfigFrame()
     end
     frame.tabButtons = tabButtons
 
-    -- Content area
+    -- Tab row bottom divider
+    local tabDiv = frame:CreateTexture(nil, "ARTWORK")
+    tabDiv:SetHeight(1)
+    tabDiv:SetPoint("TOPLEFT",  tabButtons[1], "BOTTOMLEFT")
+    tabDiv:SetPoint("TOPRIGHT", tabButtons[#tabs], "BOTTOMRIGHT")
+    tabDiv:SetColorTexture(CD.divider[1], CD.divider[2], CD.divider[3], CD.divA)
+
+    -- Content area (below tab row)
     local content = CreateFrame("Frame", nil, frame)
-    content:SetPoint("TOPLEFT", tabButtons[1], "BOTTOMLEFT", 0, -8)
-    content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, PADDING + 30)
+    content:SetPoint("TOPLEFT",     tabButtons[1], "BOTTOMLEFT", 0, -10)
+    content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, PADDING + 36)
     frame.content = content
 
     -- Store frame reference BEFORE creating tabs (they need it)
@@ -121,20 +230,21 @@ function Config:CreateConfigFrame()
     self:CreateRoutesTab(content)
     self:CreateStatisticsTab(content)
 
-    -- Bottom buttons
-    local saveBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    saveBtn:SetSize(100, 24)
-    saveBtn:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, PADDING)
-    saveBtn:SetText("Close")
-    saveBtn:SetScript("OnClick", function()
-        Config:Hide()
-    end)
+    -- Bottom divider
+    local botDiv = frame:CreateTexture(nil, "ARTWORK")
+    botDiv:SetHeight(1)
+    botDiv:SetPoint("BOTTOMLEFT",  frame, "BOTTOMLEFT",  PADDING, PADDING + 32)
+    botDiv:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, PADDING + 32)
+    botDiv:SetColorTexture(CD.divider[1], CD.divider[2], CD.divider[3], CD.divA)
 
-    local resetBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    resetBtn:SetSize(100, 24)
-    resetBtn:SetPoint("RIGHT", saveBtn, "LEFT", -8, 0)
-    resetBtn:SetText("Defaults")
-    resetBtn:SetScript("OnClick", function()
+    -- Bottom flat buttons
+    local closeBtn2 = self:CreateConfigButton(frame, "Close", 90, 22)
+    closeBtn2:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, PADDING + 6)
+    closeBtn2:SetScript("OnClick", function() Config:Hide() end)
+
+    local defaultsBtn = self:CreateConfigButton(frame, "Defaults", 90, 22)
+    defaultsBtn:SetPoint("RIGHT", closeBtn2, "LEFT", -8, 0)
+    defaultsBtn:SetScript("OnClick", function()
         StaticPopup_Show("FISHINGKIT_RESET_DEFAULTS")
     end)
 
@@ -165,21 +275,27 @@ function Config:SelectTab(tabIndex)
     configState.currentTab = tabIndex
     local frame = configState.frame
 
-    -- Update button appearance
+    -- Update tab button appearance
     for i, btn in ipairs(frame.tabButtons) do
         if i == tabIndex then
-            btn:SetNormalFontObject("GameFontHighlight")
+            -- Active: bright text + accent underline + slightly lighter bg
+            if btn.label then btn.label:SetTextColor(CD.value[1], CD.value[2], CD.value[3]) end
+            if btn.line  then btn.line:Show() end
+            if btn.bg    then btn.bg:SetColorTexture(0.10, 0.10, 0.13, 1) end
         else
-            btn:SetNormalFontObject("GameFontNormal")
+            -- Inactive: dim text, no underline, dark bg
+            if btn.label then btn.label:SetTextColor(CD.label[1], CD.label[2], CD.label[3]) end
+            if btn.line  then btn.line:Hide() end
+            if btn.bg    then btn.bg:SetColorTexture(0.06, 0.06, 0.08, 1) end
         end
     end
 
     -- Show/hide panels
-    if frame.generalPanel then frame.generalPanel:SetShown(tabIndex == 1) end
-    if frame.alertsPanel then frame.alertsPanel:SetShown(tabIndex == 2) end
-    if frame.equipmentPanel then frame.equipmentPanel:SetShown(tabIndex == 3) end
-    if frame.poolsPanel then frame.poolsPanel:SetShown(tabIndex == 4) end
-    if frame.routesPanel then frame.routesPanel:SetShown(tabIndex == 5) end
+    if frame.generalPanel    then frame.generalPanel:SetShown(tabIndex == 1) end
+    if frame.alertsPanel     then frame.alertsPanel:SetShown(tabIndex == 2) end
+    if frame.equipmentPanel  then frame.equipmentPanel:SetShown(tabIndex == 3) end
+    if frame.poolsPanel      then frame.poolsPanel:SetShown(tabIndex == 4) end
+    if frame.routesPanel     then frame.routesPanel:SetShown(tabIndex == 5) end
     if frame.statisticsPanel then frame.statisticsPanel:SetShown(tabIndex == 6) end
 end
 
@@ -249,12 +365,7 @@ function Config:CreateAlertsTab(parent)
 
     local yOffset = 0
 
-    -- Sound header
-    local soundHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    soundHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    soundHeader:SetText("Sound Alerts")
-    soundHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "SOUND ALERTS", yOffset)
 
     -- Enable sounds
     local soundCheck = self:CreateCheckbox(panel, "Enable sound alerts", yOffset, function(checked)
@@ -268,24 +379,14 @@ function Config:CreateAlertsTab(parent)
     end, function() return FK.db.settings.poolSound end)
     yOffset = yOffset - ROW_HEIGHT
 
-    -- Test sound button
-    local testBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    testBtn:SetSize(120, 24)
-    testBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, yOffset)
-    testBtn:SetText("Test Sound")
+    local testBtn = self:CreateConfigButton(panel, "Test Sound", 110, 22)
+    testBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 22, yOffset)
     testBtn:SetScript("OnClick", function()
-        if FK.Alerts then
-            FK.Alerts:TestSound()
-        end
+        if FK.Alerts then FK.Alerts:TestSound() end
     end)
-    yOffset = yOffset - 40
+    yOffset = yOffset - 34
 
-    -- Visual header
-    local visualHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    visualHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    visualHeader:SetText("Visual Alerts")
-    visualHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "VISUAL ALERTS", yOffset)
 
     -- Visual alert
     local visualCheck = self:CreateCheckbox(panel, "Show visual alerts", yOffset, function(checked)
@@ -311,12 +412,7 @@ function Config:CreateAlertsTab(parent)
     end, function() return FK.db.settings.cycleFishAlerts end)
     yOffset = yOffset - ROW_HEIGHT * 1.5
 
-    -- Enhanced Sound header
-    local enhancedHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    enhancedHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    enhancedHeader:SetText("Enhanced Fishing Sound")
-    enhancedHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "ENHANCED SOUND", yOffset)
 
     -- Enhanced sound
     local enhancedSoundCheck = self:CreateCheckbox(panel, "Enhance sounds while fishing (mute music/ambience, boost SFX)", yOffset, function(checked)
@@ -353,12 +449,7 @@ function Config:CreateEquipmentTab(parent)
 
     local yOffset = 0
 
-    -- Auto-equip settings
-    local equipHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    equipHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    equipHeader:SetText("Equipment Management")
-    equipHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "EQUIPMENT MANAGEMENT", yOffset)
 
     -- Auto-equip
     local autoEquipCheck = self:CreateCheckbox(panel, "Auto-save normal gear when equipping fishing gear", yOffset, function(checked)
@@ -378,46 +469,31 @@ function Config:CreateEquipmentTab(parent)
     end, function() return FK.db.settings.autoCombatSwap end)
     yOffset = yOffset - ROW_HEIGHT * 1.5
 
-    -- Gear set buttons
-    local gearHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    gearHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    gearHeader:SetText("Gear Sets")
-    gearHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "GEAR SETS", yOffset)
 
-    -- Save fishing gear
-    local saveFishingBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    saveFishingBtn:SetSize(150, 24)
-    saveFishingBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, yOffset)
-    saveFishingBtn:SetText("Save Fishing Gear")
+    local saveFishingBtn = self:CreateConfigButton(panel, "Save Fishing Gear", 140, 22)
+    saveFishingBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     saveFishingBtn:SetScript("OnClick", function()
         FK.Equipment:SaveFishingGear()
         FK:Print("Fishing gear saved!", FK.Colors.success)
     end)
 
-    -- Save normal gear
-    local saveNormalBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    saveNormalBtn:SetSize(150, 24)
-    saveNormalBtn:SetPoint("LEFT", saveFishingBtn, "RIGHT", 10, 0)
-    saveNormalBtn:SetText("Save Normal Gear")
+    local saveNormalBtn = self:CreateConfigButton(panel, "Save Normal Gear", 140, 22)
+    saveNormalBtn:SetPoint("LEFT", saveFishingBtn, "RIGHT", 8, 0)
     saveNormalBtn:SetScript("OnClick", function()
         FK.Equipment:SaveNormalGear()
         FK:Print("Normal gear saved!", FK.Colors.success)
     end)
-    yOffset = yOffset - 40
+    yOffset = yOffset - 34
 
-    -- Current gear status
-    local statusHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    statusHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    statusHeader:SetText("Current Status")
-    statusHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "CURRENT STATUS", yOffset)
 
-    local statusText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    local statusText = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     statusText:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, yOffset)
     statusText:SetText("Loading...")
     statusText:SetJustifyH("LEFT")
     statusText:SetWidth(FRAME_WIDTH - 40)
+    statusText:SetTextColor(CD.value[1], CD.value[2], CD.value[3], 1)
     panel.statusText = statusText
 
     -- Update status periodically
@@ -466,12 +542,7 @@ function Config:CreatePoolsTab(parent)
 
     local yOffset = 0
 
-    -- Pool Detection header
-    local detectHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    detectHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    detectHeader:SetText("Pool Detection")
-    detectHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "POOL DETECTION", yOffset)
 
     -- Track pools
     local trackPoolsCheck = self:CreateCheckbox(panel, "Track fishing pools", yOffset, function(checked)
@@ -485,12 +556,7 @@ function Config:CreatePoolsTab(parent)
     end, function() return FK.db.settings.poolSound end)
     yOffset = yOffset - ROW_HEIGHT
 
-    -- Map Pins header
-    local pinsHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    pinsHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    pinsHeader:SetText("Map Pins")
-    pinsHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "MAP PINS", yOffset)
 
     -- Show pool pins on maps
     local showPoolPinsCheck = self:CreateCheckbox(panel, "Show discovered pools on minimap and world map", yOffset, function(checked)
@@ -510,12 +576,7 @@ function Config:CreatePoolsTab(parent)
     end, function() return FK.db.settings.showCommunityPools end)
     yOffset = yOffset - ROW_HEIGHT
 
-    -- Find Fish header
-    local findFishHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    findFishHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    findFishHeader:SetText("Find Fish Tracking")
-    findFishHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "FIND FISH TRACKING", yOffset)
 
     -- Auto Find Fish
     local autoFindFishCheck = self:CreateCheckbox(panel, "Auto-enable Find Fish when equipping fishing gear", yOffset, function(checked)
@@ -523,27 +584,20 @@ function Config:CreatePoolsTab(parent)
     end, function() return FK.db.settings.autoFindFish end)
     yOffset = yOffset - ROW_HEIGHT
 
-    -- Pool Data header
-    local dataHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    dataHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    dataHeader:SetText("Pool Data")
-    dataHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "POOL DATA", yOffset)
 
     -- Pool count display
-    local poolCountText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    local poolCountText = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     poolCountText:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, yOffset)
     poolCountText:SetText("Loading...")
     poolCountText:SetJustifyH("LEFT")
     poolCountText:SetWidth(FRAME_WIDTH - 40)
+    poolCountText:SetTextColor(CD.value[1], CD.value[2], CD.value[3], 1)
     panel.poolCountText = poolCountText
     yOffset = yOffset - 40
 
-    -- Clear zone pool data
-    local clearZoneBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    clearZoneBtn:SetSize(150, 24)
-    clearZoneBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, yOffset)
-    clearZoneBtn:SetText("Clear Zone Pools")
+    local clearZoneBtn = self:CreateConfigButton(panel, "Clear Zone Pools", 140, 22)
+    clearZoneBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     clearZoneBtn:SetScript("OnClick", function()
         if FK.Pools and FK.Pools.ClearZonePoolData then
             FK.Pools:ClearZonePoolData()
@@ -551,11 +605,8 @@ function Config:CreatePoolsTab(parent)
         end
     end)
 
-    -- Clear all pool data
-    local clearAllBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    clearAllBtn:SetSize(150, 24)
-    clearAllBtn:SetPoint("LEFT", clearZoneBtn, "RIGHT", 10, 0)
-    clearAllBtn:SetText("Clear All Pools")
+    local clearAllBtn = self:CreateConfigButton(panel, "Clear All Pools", 140, 22)
+    clearAllBtn:SetPoint("LEFT", clearZoneBtn, "RIGHT", 8, 0)
     clearAllBtn:SetScript("OnClick", function()
         StaticPopup_Show("FISHINGKIT_CLEAR_POOLS")
     end)
@@ -579,12 +630,7 @@ function Config:CreateRoutesTab(parent)
 
     local yOffset = 0
 
-    -- Navigation header
-    local navHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    navHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    navHeader:SetText("Pool Route Navigation")
-    navHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "POOL ROUTE NAVIGATION", yOffset)
 
     -- Enable pool navigation
     local poolNavCheck = self:CreateCheckbox(panel, "Enable pool route navigation", yOffset, function(checked)
@@ -619,18 +665,11 @@ function Config:CreateRoutesTab(parent)
     end, function() return FK.db.settings.poolNavArrivalDistance end)
     yOffset = yOffset - 50
 
-    -- Action buttons header
-    local actionsHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    actionsHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    actionsHeader:SetText("Route Actions")
-    actionsHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "ROUTE ACTIONS", yOffset)
 
     -- Navigation action buttons
-    local startStopBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    startStopBtn:SetSize(110, 24)
-    startStopBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, yOffset)
-    startStopBtn:SetText("Start Route")
+    local startStopBtn = self:CreateConfigButton(panel, "Start Route", 110, 22)
+    startStopBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     startStopBtn:SetScript("OnClick", function(self)
         if FK.Navigation then
             FK.Navigation:ToggleRoute()
@@ -639,32 +678,26 @@ function Config:CreateRoutesTab(parent)
     end)
     panel.startStopBtn = startStopBtn
 
-    local skipBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    skipBtn:SetSize(110, 24)
+    local skipBtn = self:CreateConfigButton(panel, "Skip Waypoint", 110, 22)
     skipBtn:SetPoint("LEFT", startStopBtn, "RIGHT", 6, 0)
-    skipBtn:SetText("Skip Waypoint")
     skipBtn:SetScript("OnClick", function()
         if FK.Navigation then
             FK.Navigation:SkipWaypoint()
         end
     end)
 
-    local recalcBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    recalcBtn:SetSize(110, 24)
+    local recalcBtn = self:CreateConfigButton(panel, "Recalculate", 110, 22)
     recalcBtn:SetPoint("LEFT", skipBtn, "RIGHT", 6, 0)
-    recalcBtn:SetText("Recalculate")
     recalcBtn:SetScript("OnClick", function()
         if FK.Navigation then
             FK.Navigation:RecalculateFromNearest()
         end
     end)
-    yOffset = yOffset - 34
+    yOffset = yOffset - 32
 
     -- Import GatherMate2 button
-    local importBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    importBtn:SetSize(180, 24)
-    importBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, yOffset)
-    importBtn:SetText("Import GatherMate2 Data")
+    local importBtn = self:CreateConfigButton(panel, "Import GatherMate2 Data", 200, 22)
+    importBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     importBtn:SetScript("OnClick", function()
         if FK.Navigation then
             FK.Navigation:ImportFromGatherMate2()
@@ -718,12 +751,7 @@ function Config:CreateStatisticsTab(parent)
 
     local yOffset = 0
 
-    -- Tracking settings
-    local trackHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    trackHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    trackHeader:SetText("Statistics Tracking")
-    trackHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "STATISTICS TRACKING", yOffset)
 
     -- Track stats
     local trackStatsCheck = self:CreateCheckbox(panel, "Track fishing statistics", yOffset, function(checked)
@@ -737,33 +765,22 @@ function Config:CreateStatisticsTab(parent)
     end, function() return FK.db.settings.trackLoot end)
     yOffset = yOffset - ROW_HEIGHT * 1.5
 
-    -- Statistics display
-    local statsHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    statsHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    statsHeader:SetText("All-Time Statistics")
-    statsHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "ALL-TIME STATISTICS", yOffset)
 
-    local statsText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    local statsText = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     statsText:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, yOffset)
     statsText:SetText("Loading...")
     statsText:SetJustifyH("LEFT")
     statsText:SetWidth(FRAME_WIDTH - 40)
+    statsText:SetTextColor(CD.value[1], CD.value[2], CD.value[3], 1)
     panel.statsText = statsText
     yOffset = yOffset - 80
 
-    -- Reset buttons
-    local resetHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    resetHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    resetHeader:SetText("Reset Options")
-    resetHeader:SetTextColor(1.0, 0.82, 0.0)
-    yOffset = yOffset - 24
+    yOffset = self:CreateSectionHeader(panel, "RESET OPTIONS", yOffset)
 
     -- Reset session
-    local resetSessionBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    resetSessionBtn:SetSize(120, 24)
-    resetSessionBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, yOffset)
-    resetSessionBtn:SetText("Reset Session")
+    local resetSessionBtn = self:CreateConfigButton(panel, "Reset Session", 130, 22)
+    resetSessionBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     resetSessionBtn:SetScript("OnClick", function()
         if FK.Statistics then
             FK.Statistics:ResetSession()
@@ -772,10 +789,8 @@ function Config:CreateStatisticsTab(parent)
     end)
 
     -- Reset all stats
-    local resetAllBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    resetAllBtn:SetSize(120, 24)
-    resetAllBtn:SetPoint("LEFT", resetSessionBtn, "RIGHT", 10, 0)
-    resetAllBtn:SetText("Reset All Stats")
+    local resetAllBtn = self:CreateConfigButton(panel, "Reset All Stats", 130, 22)
+    resetAllBtn:SetPoint("LEFT", resetSessionBtn, "RIGHT", 8, 0)
     resetAllBtn:SetScript("OnClick", function()
         StaticPopup_Show("FISHINGKIT_RESET_STATS")
     end)
@@ -829,28 +844,47 @@ function Config:CreateCheckbox(parent, label, yOffset, onChange, getValue)
     container:SetSize(FRAME_WIDTH - PADDING * 2, CHECKBOX_SIZE)
     container:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
 
-    local checkbox = CreateFrame("CheckButton", nil, container, "UICheckButtonTemplate")
-    checkbox:SetPoint("LEFT", container, "LEFT", 0, 0)
+    -- Custom 14×14 checkbox square
+    local box = CreateFrame("Button", nil, container)
+    box:SetSize(14, 14)
+    box:SetPoint("LEFT", container, "LEFT", 0, 0)
 
-    if checkbox.text then
-        checkbox.text:SetText(label)
-        checkbox.text:SetFontObject("GameFontNormal")
-    else
-        local text = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetPoint("LEFT", checkbox, "RIGHT", 4, 0)
-        text:SetText(label)
+    local boxBg = box:CreateTexture(nil, "BACKGROUND")
+    boxBg:SetAllPoints()
+    boxBg:SetColorTexture(CD.barBg[1], CD.barBg[2], CD.barBg[3], 1)
+
+    AddThinBorder(box, CD.border[1], CD.border[2], CD.border[3], 0.85)
+
+    -- Accent fill when checked
+    local fill = box:CreateTexture(nil, "ARTWORK")
+    fill:SetPoint("TOPLEFT",     2, -2)
+    fill:SetPoint("BOTTOMRIGHT", -2, 2)
+    fill:SetColorTexture(CD.accent[1], CD.accent[2], CD.accent[3], 1)
+    fill:Hide()
+
+    box:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+    box:GetHighlightTexture():SetBlendMode("ADD")
+
+    -- Label text
+    local txt = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    txt:SetPoint("LEFT", box, "RIGHT", 8, 0)
+    txt:SetText(label)
+    txt:SetTextColor(CD.value[1], CD.value[2], CD.value[3])
+
+    -- State tracking (closure)
+    local isChecked = false
+    local function setChecked(val)
+        isChecked = not not val
+        if isChecked then fill:Show() else fill:Hide() end
     end
 
-    checkbox:SetScript("OnClick", function(self)
-        local checked = self:GetChecked()
-        if onChange then onChange(checked) end
+    box:SetScript("OnClick", function()
+        setChecked(not isChecked)
+        if onChange then onChange(isChecked) end
     end)
 
-    -- Update on show
     container:SetScript("OnShow", function()
-        if getValue then
-            checkbox:SetChecked(getValue())
-        end
+        if getValue then setChecked(getValue()) end
     end)
 
     return container
@@ -858,34 +892,74 @@ end
 
 function Config:CreateSlider(parent, label, yOffset, minVal, maxVal, step, onChange, getValue)
     local container = CreateFrame("Frame", nil, parent)
-    container:SetSize(FRAME_WIDTH - PADDING * 2, 44)
+    container:SetSize(FRAME_WIDTH - PADDING * 2, 38)
     container:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
 
-    local text = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    text:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
-    text:SetText(label)
+    -- Label (dim, left)
+    local txt = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    txt:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+    txt:SetText(label)
+    txt:SetTextColor(CD.label[1], CD.label[2], CD.label[3])
 
-    local slider = CreateFrame("Slider", nil, container, "OptionsSliderTemplate")
-    slider:SetPoint("TOPLEFT", text, "BOTTOMLEFT", 0, -4)
-    slider:SetSize(200, 16)
+    -- Value readout (bright, right)
+    local valTxt = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    valTxt:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
+    valTxt:SetJustifyH("RIGHT")
+    valTxt:SetTextColor(CD.value[1], CD.value[2], CD.value[3])
+    valTxt:SetText(string.format("%.1f", getValue and getValue() or minVal))
+
+    -- Track background (full width, thin)
+    local trackBg = container:CreateTexture(nil, "BACKGROUND")
+    trackBg:SetPoint("TOPLEFT",  txt, "BOTTOMLEFT",  0, -8)
+    trackBg:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, -8)
+    trackBg:SetHeight(4)
+    trackBg:SetColorTexture(CD.barBg[1], CD.barBg[2], CD.barBg[3], 1)
+
+    -- Accent fill
+    local trackFill = container:CreateTexture(nil, "ARTWORK")
+    trackFill:SetPoint("TOPLEFT", trackBg, "TOPLEFT", 0, 0)
+    trackFill:SetHeight(4)
+    trackFill:SetWidth(1)
+    trackFill:SetColorTexture(CD.accent[1], CD.accent[2], CD.accent[3], 1)
+
+    -- Thumb (small vertical bar at current position)
+    local thumb = container:CreateTexture(nil, "OVERLAY")
+    thumb:SetSize(3, 10)
+    thumb:SetColorTexture(CD.value[1], CD.value[2], CD.value[3], 0.9)
+    thumb:SetPoint("LEFT", trackBg, "LEFT", 0, 0)
+
+    -- Invisible native Slider for mouse input (sits over the track)
+    local slider = CreateFrame("Slider", nil, container)
+    slider:SetPoint("TOPLEFT",     trackBg, "TOPLEFT",     0,  6)
+    slider:SetPoint("BOTTOMRIGHT", trackBg, "BOTTOMRIGHT", 0, -6)
     slider:SetMinMaxValues(minVal, maxVal)
     slider:SetValueStep(step)
     slider:SetObeyStepOnDrag(true)
+    slider:EnableMouse(true)
 
-    local valueText = container:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    valueText:SetPoint("LEFT", slider, "RIGHT", 8, 0)
-    valueText:SetText(tostring(getValue and getValue() or minVal))
+    local function updateVisuals(value)
+        valTxt:SetText(string.format("%.1f", value))
+        local w = trackBg:GetWidth()
+        if w and w > 1 then
+            local pct = (value - minVal) / math.max(1, maxVal - minVal)
+            local fw = math.max(1, w * pct)
+            trackFill:SetWidth(fw)
+            thumb:ClearAllPoints()
+            thumb:SetPoint("LEFT", trackBg, "LEFT", math.max(0, fw - 1), 0)
+        end
+    end
 
     slider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value / step + 0.5) * step
-        valueText:SetText(string.format("%.1f", value))
+        updateVisuals(value)
         if onChange then onChange(value) end
     end)
 
-    -- Update on show
     container:SetScript("OnShow", function()
         if getValue then
-            slider:SetValue(getValue())
+            local v = getValue()
+            slider:SetValue(v)
+            updateVisuals(v)
         end
     end)
 
