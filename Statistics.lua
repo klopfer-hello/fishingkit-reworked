@@ -145,96 +145,45 @@ end
 
 -- Take a snapshot of all bag contents before loot is picked up.
 -- Called from CHANNEL_STOP so the baseline is always captured before auto-loot runs.
-function Stats:TakeBagSnapshot()
-    FK.State.bagSnapshot = {}
-    for bag = 0, 4 do
-        local numSlots = GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local link = GetContainerItemLink(bag, slot)
+function Stats:OnLootReady()
+    -- LOOT_READY fires before auto-loot processes items, so GetNumLootItems() is reliable.
+    -- Called only when IsFishingLoot() is true (checked in Core.lua).
+    if not FK.db.settings.trackStats then return end
+
+    local numItems = GetNumLootItems()
+    if numItems == 0 then
+        FK:Debug("OnLootReady: no loot items")
+        return
+    end
+
+    for i = 1, numItems do
+        local texture, name, count, quality = GetLootSlotInfo(i)
+        if name and count and count > 0 then
+            local link = GetLootSlotLink(i)
+            local itemID = nil
             if link then
-                local itemID = tonumber(string.match(link, "item:(%d+)"))
-                if itemID then
-                    local _, count = GetContainerItemInfo(bag, slot)
-                    FK.State.bagSnapshot[bag .. "_" .. slot] = {
-                        itemID = itemID,
-                        count = count or 1,
-                        link = link,
-                    }
-                end
+                itemID = tonumber(string.match(link, "item:(%d+)"))
             end
+            FK:Debug("OnLootReady: caught " .. tostring(name) .. " x" .. count)
+            self:RecordCatch({
+                itemID = itemID or 0,
+                name = name,
+                quantity = count,
+                quality = quality or 0,
+                link = link,
+            })
         end
     end
-    FK:Debug("Bag snapshot taken")
-end
 
-function Stats:ClearBagSnapshot()
-    FK.State.bagSnapshot = nil
-end
-
-function Stats:OnLootOpened()
-    -- Bag snapshot is taken in CHANNEL_STOP; nothing needed here for catch tracking.
     pendingLoot = {}
-    FK:Debug("Loot window opened (bag-diff mode)")
 end
 
 function Stats:OnLootSlotCleared(slot)
-    -- Catch detection is handled by bag comparison in OnLootClosed; nothing to do here.
+    -- Catch detection is now handled in OnLootReady; nothing to do here.
 end
 
 function Stats:OnLootClosed()
-    if not FK.db.settings.trackStats then
-        FK.State.bagSnapshot = nil
-        return
-    end
-
-    local snapshot = FK.State.bagSnapshot
-    FK.State.bagSnapshot = nil  -- consume snapshot regardless
-
-    if not snapshot then
-        FK:Debug("OnLootClosed: no bag snapshot available")
-        pendingLoot = {}
-        return
-    end
-
-    -- Compare current bags to the pre-loot snapshot.
-    -- Any slot with a new item or increased count was part of the fishing catch.
-    for bag = 0, 4 do
-        local numSlots = GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local link = GetContainerItemLink(bag, slot)
-            if link then
-                local itemID = tonumber(string.match(link, "item:(%d+)"))
-                if itemID then
-                    local _, count = GetContainerItemInfo(bag, slot)
-                    count = count or 1
-                    local key = bag .. "_" .. slot
-                    local prev = snapshot[key]
-
-                    local newCount = 0
-                    if not prev then
-                        newCount = count         -- brand-new item in this slot
-                    elseif prev.itemID == itemID and count > prev.count then
-                        newCount = count - prev.count  -- existing stack grew
-                    end
-
-                    if newCount > 0 then
-                        local name, _, quality = GetItemInfo(itemID)
-                        FK:Debug("Bag diff: new item " .. tostring(name) .. " x" .. newCount)
-                        self:RecordCatch({
-                            itemID = itemID,
-                            name = name or "Unknown",
-                            quantity = newCount,
-                            quality = quality or 0,
-                            link = link,
-                        })
-                    end
-                end
-            end
-        end
-    end
-
     pendingLoot = {}
-    FK:Debug("Loot closed, bag diff complete")
 end
 
 function Stats:RecordCatch(lootData)
