@@ -561,7 +561,6 @@ local events = {
     "LOOT_OPENED",
     "LOOT_SLOT_CLEARED",
     "LOOT_CLOSED",
-    "CHAT_MSG_LOOT",
 
     -- Location events
     "ZONE_CHANGED",
@@ -662,6 +661,7 @@ eventHandlers.UNIT_SPELLCAST_START = function(unit, arg2, arg3, arg4, arg5)
         FK.State.castStartTime = GetTime()
         FK.State.channelStarted = false  -- bobber not in water yet
         FK.State.waitingForLoot = false  -- Clear stale state from previous cast
+        FK.State.insideFishingLoot = false  -- Clear any lingering loot window flag
         FK:Debug("Fishing cast started - spell: " .. tostring(spellName) .. " gen=" .. FK.State.castGen)
 
         -- Notify alerts module (sounds/visuals start immediately)
@@ -827,6 +827,17 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, arg2, arg3, arg4, arg
         FK.State.waitingForLoot = true
         FK.State.lootCastGen = FK.State.castGen  -- save which cast's loot we're waiting for
 
+        -- Mark that the next loot window belongs to this fishing cast.
+        -- insideFishingLoot persists through isFishing resets so LOOT_CLOSED
+        -- can always run the bag comparison even if isFishing was cleared early.
+        FK.State.insideFishingLoot = true
+
+        -- Snapshot bags NOW before auto-loot places items into them.
+        -- This is the reliable pre-loot baseline for the bag-diff catch detection.
+        if FK.Statistics and FK.Statistics.TakeBagSnapshot then
+            FK.Statistics:TakeBagSnapshot()
+        end
+
         -- Timeout: if no loot window opens in 1 second, reset state
         -- Use castGen to detect if a new cast started before timeout fires
         local savedGen = FK.State.castGen
@@ -835,6 +846,7 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, arg2, arg3, arg4, arg
                 FK.State.isFishing = false
                 FK.State.castStartTime = nil
                 FK.State.waitingForLoot = false
+                FK.State.insideFishingLoot = false
                 FK:Debug("Fishing timeout - no loot")
                 FK:Debug("Timeout reset state (gen=" .. savedGen .. ")")
                 if FK.Alerts and FK.Alerts.OnFishingComplete then
@@ -923,10 +935,11 @@ local function ProcessReleaseList()
 end
 
 eventHandlers.LOOT_CLOSED = function()
-    if FK.State.isFishing or FK.State.waitingForLoot then
+    if FK.State.isFishing or FK.State.waitingForLoot or FK.State.insideFishingLoot then
         FK:Debug("Loot window closed - fishing complete")
+        FK.State.insideFishingLoot = false  -- consumed; next loot window is not fishing
 
-        -- Finalize the catch
+        -- Finalize the catch via bag comparison
         if FK.Statistics and FK.Statistics.OnLootClosed then
             FK.Statistics:OnLootClosed()
         end
@@ -967,17 +980,6 @@ eventHandlers.LOOT_CLOSED = function()
 
         -- Process catch & release auto-delete
         C_Timer.After(0.3, ProcessReleaseList)
-    end
-end
-
--- CHAT_MSG_LOOT is the most reliable way to detect fishing catches in TBC Classic.
--- The loot window approach (LOOT_OPENED + GetNumLootItems) can return 0 items with
--- auto-loot enabled, leaving pendingLoot empty and catches unrecorded.
-eventHandlers.CHAT_MSG_LOOT = function(msg)
-    if FK.State.isFishing or FK.State.waitingForLoot then
-        if FK.Statistics and FK.Statistics.OnLootMessage then
-            FK.Statistics:OnLootMessage(msg)
-        end
     end
 end
 

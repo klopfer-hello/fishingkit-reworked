@@ -37,10 +37,6 @@ local sessionData = {
 -- Pending loot tracking (for when loot window is open)
 local pendingLoot = {}
 
--- Deduplication: track the last castGen for which a catch was recorded.
--- Prevents double-counting when both the loot window approach and CHAT_MSG_LOOT fire
--- for the same item.
-local lastCatchCastGen = -1
 
 -- Milestone thresholds for celebration
 local MILESTONES = { 100, 250, 500, 1000, 2500, 5000, 10000 }
@@ -147,99 +143,98 @@ end
 -- Loot Tracking
 -- ============================================================================
 
+-- Take a snapshot of all bag contents before loot is picked up.
+-- Called from CHANNEL_STOP so the baseline is always captured before auto-loot runs.
+function Stats:TakeBagSnapshot()
+    FK.State.bagSnapshot = {}
+    for bag = 0, 4 do
+        local numSlots = GetContainerNumSlots(bag)
+        for slot = 1, numSlots do
+            local link = GetContainerItemLink(bag, slot)
+            if link then
+                local itemID = tonumber(string.match(link, "item:(%d+)"))
+                if itemID then
+                    local _, count = GetContainerItemInfo(bag, slot)
+                    FK.State.bagSnapshot[bag .. "_" .. slot] = {
+                        itemID = itemID,
+                        count = count or 1,
+                        link = link,
+                    }
+                end
+            end
+        end
+    end
+    FK:Debug("Bag snapshot taken")
+end
+
+function Stats:ClearBagSnapshot()
+    FK.State.bagSnapshot = nil
+end
+
 function Stats:OnLootOpened()
-    if not FK.db.settings.trackStats then return end
-
-    -- Clear pending loot
+    -- Bag snapshot is taken in CHANNEL_STOP; nothing needed here for catch tracking.
     pendingLoot = {}
+    FK:Debug("Loot window opened (bag-diff mode)")
+end
 
-    -- Scan the loot window
-    local numItems = GetNumLootItems()
-    for i = 1, numItems do
-        local lootIcon, lootName, lootQuantity, lootQuality, locked, isQuestItem, questId, isActive = GetLootSlotInfo(i)
-        local lootLink = GetLootSlotLink(i)
+function Stats:OnLootSlotCleared(slot)
+    -- Catch detection is handled by bag comparison in OnLootClosed; nothing to do here.
+end
 
-        if lootLink then
-            local itemID = self:GetItemIDFromLink(lootLink)
-            if itemID then
-                table.insert(pendingLoot, {
-                    slot = i,
-                    itemID = itemID,
-                    name = lootName,
-                    quantity = lootQuantity or 1,
-                    quality = lootQuality or 0,
-                    link = lootLink,
-                })
+function Stats:OnLootClosed()
+    if not FK.db.settings.trackStats then
+        FK.State.bagSnapshot = nil
+        return
+    end
+
+    local snapshot = FK.State.bagSnapshot
+    FK.State.bagSnapshot = nil  -- consume snapshot regardless
+
+    if not snapshot then
+        FK:Debug("OnLootClosed: no bag snapshot available")
+        pendingLoot = {}
+        return
+    end
+
+    -- Compare current bags to the pre-loot snapshot.
+    -- Any slot with a new item or increased count was part of the fishing catch.
+    for bag = 0, 4 do
+        local numSlots = GetContainerNumSlots(bag)
+        for slot = 1, numSlots do
+            local link = GetContainerItemLink(bag, slot)
+            if link then
+                local itemID = tonumber(string.match(link, "item:(%d+)"))
+                if itemID then
+                    local _, count = GetContainerItemInfo(bag, slot)
+                    count = count or 1
+                    local key = bag .. "_" .. slot
+                    local prev = snapshot[key]
+
+                    local newCount = 0
+                    if not prev then
+                        newCount = count         -- brand-new item in this slot
+                    elseif prev.itemID == itemID and count > prev.count then
+                        newCount = count - prev.count  -- existing stack grew
+                    end
+
+                    if newCount > 0 then
+                        local name, _, quality = GetItemInfo(itemID)
+                        FK:Debug("Bag diff: new item " .. tostring(name) .. " x" .. newCount)
+                        self:RecordCatch({
+                            itemID = itemID,
+                            name = name or "Unknown",
+                            quantity = newCount,
+                            quality = quality or 0,
+                            link = link,
+                        })
+                    end
+                end
             end
         end
     end
 
-    FK:Debug("Loot window opened with " .. #pendingLoot .. " items")
-end
-
-function Stats:OnLootSlotCleared(slot)
-    if not FK.db.settings.trackStats then return end
-
-    -- Find the item in pending loot
-    for i, loot in ipairs(pendingLoot) do
-        if loot.slot == slot and not loot.recorded then
-            self:RecordCatch(loot)
-            loot.recorded = true
-            break
-        end
-    end
-end
-
-function Stats:OnLootClosed()
-    if not FK.db.settings.trackStats then return end
-
-    -- Count any remaining unrecorded loot (auto-loot scenarios)
-    for _, loot in ipairs(pendingLoot) do
-        if not loot.recorded then
-            self:RecordCatch(loot)
-        end
-    end
-
     pendingLoot = {}
-    FK:Debug("Loot closed, catch finalized")
-end
-
--- Called from CHAT_MSG_LOOT when the player receives loot while fishing.
--- This is the primary catch detection path for TBC Classic, where the loot
--- window API (GetNumLootItems in LOOT_OPENED) can return 0 with auto-loot.
-function Stats:OnLootMessage(msg)
-    if not FK.db.settings.trackStats then return end
-
-    -- Deduplication: skip if the loot window approach already recorded this cast's catch
-    if FK.State.castGen and lastCatchCastGen == FK.State.castGen then
-        FK:Debug("OnLootMessage: catch already recorded for gen " .. tostring(FK.State.castGen))
-        return
-    end
-
-    -- Extract item ID from the hyperlink embedded in the loot message
-    -- Format: "You receive loot: |cFFxxxxxx|Hitem:XXXXX:...|h[Name]|h|r."
-    local itemID = tonumber(string.match(msg, "|Hitem:(%d+)"))
-    if not itemID then return end  -- no item link (e.g. gold loot)
-
-    -- Extract the full colored hyperlink for storage and display
-    local link = string.match(msg, "|c%x+|Hitem:[^|]+|h[^|]+|h|r")
-
-    -- Get item name and quality; fall back to parsing from the link if not cached
-    local name, _, quality = GetItemInfo(itemID)
-    if not name and link then
-        name = string.match(link, "|h%[(.-)%]|h")
-    end
-
-    local lootData = {
-        itemID = itemID,
-        name = name or "Unknown",
-        quantity = 1,
-        quality = quality or 0,
-        link = link or "",
-    }
-
-    FK:Debug("OnLootMessage recording catch: " .. (name or "Unknown"))
-    self:RecordCatch(lootData)
+    FK:Debug("Loot closed, bag diff complete")
 end
 
 function Stats:RecordCatch(lootData)
@@ -262,7 +257,6 @@ function Stats:RecordCatch(lootData)
         FK:Debug("Junk recorded: " .. itemName)
     else
         -- Count as catch
-        lastCatchCastGen = FK.State.castGen  -- mark this cast as having a recorded catch
         sessionData.catches = sessionData.catches + 1
 
         if FK.chardb and FK.chardb.stats then
