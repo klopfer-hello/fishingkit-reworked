@@ -62,12 +62,11 @@ All credit for the original work goes to the original author. This fork exists p
 - Automatically saves normal gear before equipping fishing gear
 - Persists across sessions - never lose track of your gear
 
-### ⚔️ Auto-Combat Fishing Recovery
+### ⚔️ Auto-Combat Weapon Swap
 - Detects entering combat while fishing pole is equipped
-- Chat warning when combat is detected
-- Automatically re-equips fishing gear when combat ends so you can resume fishing immediately
-- Retry logic for reliable lockdown-safe swapping (up to 10 attempts)
-- Toggle on/off in Equipment config tab
+- Instantly equips your saved combat weapons (mainhand + offhand) using the only format that works under combat lockdown
+- Restores your fishing pole after combat ends — only the pole, not the full gear set, so your normal gear save is never corrupted
+- Toggle on/off in the Automation config tab
 
 ### 🪱 Smart Lure System
 - Automatically detects the best lure in your bags
@@ -176,6 +175,12 @@ All credit for the original work goes to the original author. This fork exists p
 - Arrow position is draggable and persists across sessions
 - Import pool data from GatherMate2 with `/fk import gathermate`
 
+### 📊 Zone Fish Panel
+- Expandable panel anchored below the main HUD, toggled with the `%` button in the title bar
+- Shows every fish/item caught in the current zone with count and catch rate percentage
+- Sorted by catch rate (highest first) — e.g. "Golden Darter 42.3%"
+- Refreshes every 2 seconds while visible; dynamically resizes to fit entries
+
 ### 🐟 Auto Find Fish Tracking
 - Automatically enables **Find Fish** minimap tracking when equipping fishing gear
 - Restores your previous tracking type (e.g. Find Herbs) when unequipping
@@ -186,6 +191,7 @@ All credit for the original work goes to the original author. This fork exists p
 - Shows total count of items to open
 - Spam-click to quickly open all containers
 - Supports: Big-mouth Clam, Thick-Shelled Clam, Jaggal Clam, Waterlogged Crate, Inscribed Scrollcase, Curious Crate, and more
+- **Auto-open**: automatically opens fishing crates and scroll cases after each loot window closes (toggle in Automation tab)
 
 ### 🎯 Fishing Goals
 - Set session catch targets via `/fk goal <fish name> <count>`
@@ -262,7 +268,7 @@ All credit for the original work goes to the original author. This fork exists p
 
 ## Configuration
 
-The config panel (`/fk config`) includes 5 tabs:
+The config panel (`/fk config`) includes 7 tabs:
 
 ### General
 - Enable/disable addon, show/hide UI, lock position, UI scale, minimap button
@@ -272,20 +278,28 @@ The config panel (`/fk config`) includes 5 tabs:
 - Visual alerts, screen flash on rare catch, milestone celebrations
 - Enhanced fishing sound (boost splash volume), missing lure warning
 
-### Equipment
-- Auto-save normal gear, re-equip fishing gear after combat toggle
+### Gear
+- Remind to apply lure when missing toggle
 - Save Fishing Gear / Save Normal Gear buttons
 - Current equipment status display
 
 ### Pools
 - Pool detection on/off, pool discovery sound
 - Minimap/world map pin display toggle, community pool visibility toggle
-- Auto Find Fish tracking toggle
 - Pool Route Navigation: enable navigation, show arrow, show route on world map, waypoint sound, arrival distance slider
 - Start/Stop Route, Skip Waypoint, Recalculate, Import GatherMate2 buttons
 - Pool data count and clear buttons
 
-### Statistics
+### Routes
+- Pool route navigation controls and action buttons
+
+### Auto
+- **CASTING**: Double-right-click to cast
+- **GEAR**: Auto-save normal gear when equipping fishing gear; Auto swap weapons in combat, restore pole after
+- **LOOT**: Auto-open crates and scroll cases after fishing
+- **TRACKING**: Auto-enable Find Fish when equipping fishing gear
+
+### Stats
 - Track stats on/off, track loot history on/off
 - All-time statistics summary
 - Reset session / Reset all stats buttons
@@ -314,7 +328,7 @@ The config panel (`/fk config`) includes 5 tabs:
 
 - **Game Version**: WoW TBC Classic Anniversary Edition (2.5.5)
 - **Interface**: 20505
-- **Addon Version**: 1.0.12
+- **Addon Version**: 1.1.0
 
 ## Known Limitations
 

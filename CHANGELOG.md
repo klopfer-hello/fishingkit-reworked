@@ -1,5 +1,76 @@
 # FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.1.0
+
+### New Features
+
+#### Combat Weapon Swap
+- **Auto-swap weapons on combat entry** — when a fishing pole is equipped and you enter combat, your saved combat weapons (mainhand + offhand) are immediately equipped using `EquipItemByName("item:ID", slot)` — the only format that works under combat lockdown
+- **Pole restoration after combat** — after combat ends, only the fishing pole is restored (not the full fishing gear set, which would corrupt the normal gear save)
+- `combatWeapons` saved separately in per-character DB from `normalGear`, so saving/restoring normal gear does not interfere with the combat weapon swap
+- Guard prevents re-equipping a pole already in the mainhand slot (avoids picking it up and leaving an empty slot)
+- Toggle on/off in the new **Automation** config tab
+
+#### Zone Fish Panel
+- **New expandable panel** anchored below the main HUD, toggled with the `%` button in the title bar
+- Shows every fish/item caught in the current zone, sorted by catch rate (descending)
+- Columns: fish name, count, and catch rate percentage (e.g. "Golden Darter 42.3%")
+- Header shows current zone name; updates every 2 seconds while visible
+- Pre-creates up to 12 FontString rows — no GC pressure on refresh
+- Dynamically resizes to fit the number of entries
+- Implemented as a standalone module (`ZoneFish.lua`)
+
+#### Auto-Open Containers
+- **Automatically opens fishing crates and scroll cases** after each fishing loot window closes
+- Supported containers: Waterlogged Crate, Inscribed Scrollcase, Curious Crate, and other known fishing loot containers
+- Items staggered 0.5 seconds apart to avoid server throttling
+- Re-verifies each bag slot before opening in case inventory changed
+- Toggle on/off in the new **Automation** config tab
+
+#### Automation Config Tab
+- New dedicated **Auto** tab in the config panel (between Routes and Stats)
+- Consolidates all automation settings from their previous scattered locations:
+  - **CASTING**: Double-right-click to cast
+  - **GEAR**: Auto-save normal gear when equipping fishing gear; Auto swap weapons in combat
+  - **LOOT**: Auto-open crates and scroll cases after fishing
+  - **TRACKING**: Auto-enable Find Fish when equipping fishing gear
+
+#### UI Redesign
+- **Main panel** fully restyled with a clean minimal dark aesthetic — dark background, thin accent borders, no Blizzard template chrome
+- **Config panel** matching redesign — flat tab buttons with accent underline for active tab, custom checkboxes (14px square with accent fill), custom slider (thin track + thumb)
+- **Stats window** restyled to match the main panel theme
+- All Blizzard icon/template buttons replaced with minimal styled text buttons
+
+### Fixes
+- **Cast timer reset on re-cast**: `castStartTime` now unconditionally set at `CHANNEL_START` — previously guarded by a nil-check which prevented it from updating on the second cast
+- **Casts counted at resolution**: casts now counted at `CHANNEL_STOP` (fish bite / got away), not at `CHANNEL_START`, so cancelled casts before the bobber lands aren't counted
+- **CHANNEL_STOP guard on re-cast**: stale `CHANNEL_STOP` from the previous bobber after a re-cast is ignored via `channelCastGen` comparison
+- **Three session/cast tracking bugs**: fixed session state not resetting correctly, double-counting casts during rapid re-casts, and stale loot state persisting across sessions
+- **Enhanced sound timing**: sound restore now matches BetterFishing timing exactly — restores after loot closes, not on channel stop
+
+### Performance
+- **SavedVariables size halved**: large history arrays (lootHistory, biteTimes) excluded from account-wide backup to reduce file size
+- **Bite confidence cached per zone**: `GetBiteConfidence` result cached and invalidated only on new catches, eliminating redundant percentile recalculation on every frame
+- **Split update rates**: cast bar updates at 0.1s; panel stats (session numbers, gold/hr) update at 1.0s — reduces CPU load during active fishing
+- **Gold/hr display**: rate recalculated every 10s instead of every frame update
+
+### Refactors
+- **Addon reorganized** into `modules/` and `media/` subfolders for cleaner project structure
+- `RecordCatch` split into focused local helpers for clarity
+- Dead code from the old bag-diff catch approach removed
+- History list trimming simplified from a while-loop to an if-check (lists are bounded)
+
+### Files Modified
+- `FishingKit.toc` (version 1.0.12 → 1.1.0, added `modules\ZoneFish.lua`)
+- `Core.lua` (`combatWeapons` in defaultCharDB, `autoOpenContainers` setting, `PLAYER_REGEN_DISABLED/ENABLED` combat weapon handlers, `LOOT_CLOSED` auto-open trigger)
+- `modules/Equipment.lua` (`EquipCombatWeapons`, `SaveNormalGear` saves `combatWeapons`, already-equipped guard)
+- `modules/UI.lua` (full dark redesign, `%` Zone Fish toggle button, `AutoOpenContainers`)
+- `modules/Config.lua` (full dark redesign, new `CreateAutomationTab`, settings moved from General/Gear/Pools)
+- `modules/Statistics.lua` (RecordCatch refactor, SavedVariables size optimization)
+- `modules/ZoneFish.lua` (new module)
+
+---
+
 ## v1.0.12
 
 ### Changes

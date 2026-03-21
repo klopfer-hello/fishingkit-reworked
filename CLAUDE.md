@@ -11,15 +11,16 @@ The addon uses a global namespace `FK` (also `FishingKit`) populated via the add
 | File | Purpose |
 |---|---|
 | [Core.lua](Core.lua) | Main framework: event registration, state machine, module coordination, C_Container shim |
-| [Statistics.lua](Statistics.lua) | Session stats, catch recording, loot event handling |
-| [Alerts.lua](Alerts.lua) | Sound/visual alerts for fish bites |
-| [Config.lua](Config.lua) | Settings persistence and defaults |
-| [Database.lua](Database.lua) | Fish/item classification (fish vs junk vs special) |
-| [Equipment.lua](Equipment.lua) | Fishing gear and lure management |
-| [UI.lua](UI.lua) | Addon UI frames |
-| [Pools.lua](Pools.lua) | Fishing pool location tracking |
-| [PoolData.lua](PoolData.lua) | Pool name/location data |
-| [Navigation.lua](Navigation.lua) | Map/minimap utilities |
+| [modules/Statistics.lua](modules/Statistics.lua) | Session stats, catch recording, loot event handling |
+| [modules/Alerts.lua](modules/Alerts.lua) | Sound/visual alerts for fish bites |
+| [modules/Config.lua](modules/Config.lua) | Settings persistence and defaults |
+| [modules/Database.lua](modules/Database.lua) | Fish/item classification (fish vs junk vs special) |
+| [modules/Equipment.lua](modules/Equipment.lua) | Fishing gear, lure management, and combat weapon swap |
+| [modules/UI.lua](modules/UI.lua) | Addon UI frames |
+| [modules/ZoneFish.lua](modules/ZoneFish.lua) | Zone catch-rate panel (expandable panel below main HUD) |
+| [modules/Pools.lua](modules/Pools.lua) | Fishing pool location tracking |
+| [modules/PoolData.lua](modules/PoolData.lua) | Pool name/location data |
+| [modules/Navigation.lua](modules/Navigation.lua) | Map/minimap utilities |
 
 ## Game Version Notes (Critical)
 
@@ -52,6 +53,8 @@ FK.State = {
     sessionStartTime
     sessionActive
     combatSwapQueued
+    preCombatPole    -- GetInventoryItemLink("player", 16) snapshotted at PLAYER_REGEN_DISABLED;
+                     -- used to restore only the pole after combat (not full gear set)
 }
 ```
 
@@ -110,6 +113,9 @@ Key files to reference:
 | `d6ab687` | Bag diff intermittent (player >1s to click, timeout cleared state) | Replaced bag diff with `LOOT_READY` + `IsFishingLoot()` |
 | `f347b47` | Sound permanently boosted / re-cast triggered double boost+restore | `BoostFishingSound` idempotent via guard; `RestoreFishingSound` only called from `OnFishingComplete` |
 | `9b98408` | Cast timer not reset on re-cast | `castStartTime` set unconditionally at `CHANNEL_START` (was conditional nil-check) |
+| `1a2b4de` | Combat weapon swap: offhand silently failed; item-name format failed in combat; calling from `UNIT_INVENTORY_CHANGED` failed (lockdown fully active by then) | Use `EquipItemByName("item:ID", slot)` immediately from `PLAYER_REGEN_DISABLED`; guard offhand with current-item check (pole doesn't displace slot 17) |
+| `1a2b4de` | After combat, `EquipFishingGear` → `SaveNormalGear` overwrote normalGear with fishing hat/boots | `combatWeapons` stored separately in charDB; combat-end only restores the pole, never calls `EquipFishingGear`/`SaveNormalGear` |
+| `1a2b4de` | Pole disappeared after combat (slot empty) | `EquipItemByName("item:poleID", 16)` when pole already in slot picks it up and leaves empty; guard with `GetItemIDFromLink` comparison before attempting equip |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 
@@ -122,6 +128,9 @@ Key files to reference:
 - `UNIT_SPELLCAST_CHANNEL_STOP` fires when the fishing channel ends — in TBC Classic this fires at fish bite time, not at player click time
 - `C_Timer.After(delay, func)` is available
 - Item links follow pattern `item:(%d+)` for extracting itemID
+- **`EquipItemByName` in combat**: only `"item:ID"` format works under combat lockdown. Item-name strings (e.g. `"Fool's Bane"`) and full hyperlinks (`|H...|h`) silently fail. Must be called immediately from `PLAYER_REGEN_DISABLED` — by the time `UNIT_INVENTORY_CHANGED` fires, lockdown is fully active.
+- **Fishing poles don't displace slot 17**: equipping a pole in slot 16 does not unequip the offhand. `EquipItemByName` only searches bags, so if the offhand is already in slot 17 the call silently fails. Always check `GetInventoryItemLink("player", SLOT_OFFHAND)` before attempting to equip.
+- **`UseContainerItem(bag, slot)`** works outside combat from event handlers for opening containers.
 
 ## Coding Conventions
 
@@ -130,3 +139,31 @@ Key files to reference:
 - Settings access: `FK.db.settings.trackStats` (persisted SavedVariables)
 - Session data: local `sessionData` table in Statistics.lua, reset on `StartSession()`
 - All event handlers registered via `local events = { "EVENT_NAME", ... }` table and dispatched through `eventHandlers.EVENT_NAME = function(...) end`
+
+## Versioning
+
+This project follows **Semantic Versioning** (`MAJOR.MINOR.PATCH`):
+
+| Change type | Version bump | Example |
+|---|---|---|
+| Breaking changes (SavedVariables schema incompatible, removed features) | MAJOR | `1.x.x` → `2.0.0` |
+| New features (backwards-compatible) | MINOR | `1.0.x` → `1.1.0` |
+| Bug fixes only (no new features) | PATCH | `1.1.x` → `1.1.1` |
+
+Current series started at `1.0.x` for initial development; proper semver applied from `v1.1.0` onward.
+
+## Release Process
+
+Before each release, update **all four** of the following in a single commit, then tag:
+
+1. **`CLAUDE.md`** — update File Structure, State Machine, Bugs Fixed, and API notes to reflect changes in this release
+2. **`CHANGELOG.md`** — add a new `## vX.Y.Z` section at the top (below the title) documenting new features, fixes, and files modified
+3. **`README.md`** — update the version badge in Compatibility, and reflect any new features or config tab changes
+4. **`FishingKit.toc`** — bump `## Version:`
+
+Then commit and tag:
+```
+git add CLAUDE.md CHANGELOG.md README.md FishingKit.toc
+git commit -m "chore: release vX.Y.Z"
+git tag -a vX.Y.Z -m "vX.Y.Z"
+```
