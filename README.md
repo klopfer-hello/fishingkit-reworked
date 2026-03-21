@@ -1,6 +1,6 @@
-# Extreme FishingKit — Personal Fork
+# Extreme FishingKit
 
-This is a personal fork of the original **FishingKit** addon for World of Warcraft TBC Classic Anniversary.
+This is a fork of the original **FishingKit** addon for World of Warcraft TBC Classic Anniversary.
 
 **Original addon:** https://www.curseforge.com/wow/addons/fishingkit-tbc-anniversary-edition
 
