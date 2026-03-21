@@ -1,8 +1,7 @@
 ## Interface: 20505
 ## Title: |cFF00D1FFFishingKit|r - TBC Anniversary Edition - Reworked
 ## Notes: The ultimate fishing companion for TBC Anniversary. Tracks stats, detects pools, manages gear, and enhances your fishing experience.
-## Author: For Fun Studios ( FFS )
-## Editor: Klopfer-Hello
+## Author: For Fun Studios ( FFS ) - Original work | Klopfer-Hello - Fork & personal additions
 ## Version: 1.0.12
 ## SavedVariables: FishingKitDB
 ## SavedVariablesPerCharacter: FishingKitCharDB
