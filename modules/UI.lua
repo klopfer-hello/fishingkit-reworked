@@ -21,8 +21,8 @@ local UI = FK.UI
 local uiState = {
     mainFrame = nil,
     visible = false,
-    updateInterval = 0.1,  -- Faster updates for cast bar
-    elapsed = 0,
+    elapsed = 0,       -- accumulator for fast (0.1s) cast-bar updates
+    slowElapsed = 0,   -- accumulator for slow (1.0s) panel updates
     lastCatch = nil,
 }
 
@@ -217,12 +217,17 @@ function UI:CreateMainFrame()
         UI:SavePosition()
     end)
 
-    -- Update timer
+    -- Update timer: cast bar at 0.1s, everything else at 1.0s
     frame:SetScript("OnUpdate", function(self, elapsed)
         uiState.elapsed = uiState.elapsed + elapsed
-        if uiState.elapsed >= uiState.updateInterval then
+        if uiState.elapsed >= 0.1 then
             uiState.elapsed = 0
-            UI:Update()
+            UI:UpdateCastBar()
+        end
+        uiState.slowElapsed = uiState.slowElapsed + elapsed
+        if uiState.slowElapsed >= 1.0 then
+            uiState.slowElapsed = 0
+            UI:UpdatePanel()
         end
     end)
 
@@ -860,13 +865,18 @@ end
 -- Update Functions
 -- ============================================================================
 
+-- Full refresh — called when the panel needs an immediate sync (e.g. on show).
 function UI:Update()
+    if not uiState.mainFrame or not uiState.visible then return end
+    self:UpdateCastBar()
+    self:UpdatePanel()
+end
+
+-- Slow panel refresh (1 Hz) — everything except the cast bar.
+function UI:UpdatePanel()
     if not uiState.mainFrame or not uiState.visible then return end
 
     local frame = uiState.mainFrame
-
-    -- Update cast bar
-    self:UpdateCastBar()
 
     -- Update skill display
     local skill, maxSkill = FK:GetFishingSkill()
@@ -1057,17 +1067,12 @@ function UI:Update()
         end
     end
 
-    -- Update contest panel (check every ~2 seconds via modulo)
-    if not uiState.contestCheck then uiState.contestCheck = 0 end
-    uiState.contestCheck = uiState.contestCheck + 1
-    if uiState.contestCheck >= 20 then  -- every ~2 seconds at 0.1s interval
-        uiState.contestCheck = 0
-        self:UpdateContestPanel()
+    -- Update contest panel (panel runs at 1 Hz; UpdateContestPanel is cheap)
+    self:UpdateContestPanel()
 
-        -- Also check cycle fish windows (self-throttles to 60s)
-        if FK.Alerts and FK.Alerts.CheckCycleFishWindows then
-            FK.Alerts:CheckCycleFishWindows()
-        end
+    -- Check cycle fish windows (self-throttles internally to 60s)
+    if FK.Alerts and FK.Alerts.CheckCycleFishWindows then
+        FK.Alerts:CheckCycleFishWindows()
     end
 
     -- Update equip button text
