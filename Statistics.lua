@@ -37,6 +37,11 @@ local sessionData = {
 -- Pending loot tracking (for when loot window is open)
 local pendingLoot = {}
 
+-- Deduplication: track the last castGen for which a catch was recorded.
+-- Prevents double-counting when both the loot window approach and CHAT_MSG_LOOT fire
+-- for the same item.
+local lastCatchCastGen = -1
+
 -- Milestone thresholds for celebration
 local MILESTONES = { 100, 250, 500, 1000, 2500, 5000, 10000 }
 
@@ -199,6 +204,44 @@ function Stats:OnLootClosed()
     FK:Debug("Loot closed, catch finalized")
 end
 
+-- Called from CHAT_MSG_LOOT when the player receives loot while fishing.
+-- This is the primary catch detection path for TBC Classic, where the loot
+-- window API (GetNumLootItems in LOOT_OPENED) can return 0 with auto-loot.
+function Stats:OnLootMessage(msg)
+    if not FK.db.settings.trackStats then return end
+
+    -- Deduplication: skip if the loot window approach already recorded this cast's catch
+    if FK.State.castGen and lastCatchCastGen == FK.State.castGen then
+        FK:Debug("OnLootMessage: catch already recorded for gen " .. tostring(FK.State.castGen))
+        return
+    end
+
+    -- Extract item ID from the hyperlink embedded in the loot message
+    -- Format: "You receive loot: |cFFxxxxxx|Hitem:XXXXX:...|h[Name]|h|r."
+    local itemID = tonumber(string.match(msg, "|Hitem:(%d+)"))
+    if not itemID then return end  -- no item link (e.g. gold loot)
+
+    -- Extract the full colored hyperlink for storage and display
+    local link = string.match(msg, "|c%x+|Hitem:[^|]+|h[^|]+|h|r")
+
+    -- Get item name and quality; fall back to parsing from the link if not cached
+    local name, _, quality = GetItemInfo(itemID)
+    if not name and link then
+        name = string.match(link, "|h%[(.-)%]|h")
+    end
+
+    local lootData = {
+        itemID = itemID,
+        name = name or "Unknown",
+        quantity = 1,
+        quality = quality or 0,
+        link = link or "",
+    }
+
+    FK:Debug("OnLootMessage recording catch: " .. (name or "Unknown"))
+    self:RecordCatch(lootData)
+end
+
 function Stats:RecordCatch(lootData)
     local itemID = lootData.itemID
     local itemName = lootData.name
@@ -219,6 +262,7 @@ function Stats:RecordCatch(lootData)
         FK:Debug("Junk recorded: " .. itemName)
     else
         -- Count as catch
+        lastCatchCastGen = FK.State.castGen  -- mark this cast as having a recorded catch
         sessionData.catches = sessionData.catches + 1
 
         if FK.chardb and FK.chardb.stats then

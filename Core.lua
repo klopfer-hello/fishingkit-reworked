@@ -561,6 +561,7 @@ local events = {
     "LOOT_OPENED",
     "LOOT_SLOT_CLEARED",
     "LOOT_CLOSED",
+    "CHAT_MSG_LOOT",
 
     -- Location events
     "ZONE_CHANGED",
@@ -966,6 +967,17 @@ eventHandlers.LOOT_CLOSED = function()
 
         -- Process catch & release auto-delete
         C_Timer.After(0.3, ProcessReleaseList)
+    end
+end
+
+-- CHAT_MSG_LOOT is the most reliable way to detect fishing catches in TBC Classic.
+-- The loot window approach (LOOT_OPENED + GetNumLootItems) can return 0 items with
+-- auto-loot enabled, leaving pendingLoot empty and catches unrecorded.
+eventHandlers.CHAT_MSG_LOOT = function(msg)
+    if FK.State.isFishing or FK.State.waitingForLoot then
+        if FK.Statistics and FK.Statistics.OnLootMessage then
+            FK.Statistics:OnLootMessage(msg)
+        end
     end
 end
 
