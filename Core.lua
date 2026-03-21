@@ -796,6 +796,7 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_START = function(unit, arg2, arg3, arg4, ar
     if IsFishingSpell(arg2, arg3, arg4, arg5) then
         FK.State.isFishing = true
         FK.State.channelStarted = true  -- bobber is in the water
+        FK.State.channelCastGen = FK.State.castGen  -- snapshot gen for this bobber
         -- Also set cast start time here in case SPELLCAST_START didn't fire
         if not FK.State.castStartTime then
             FK.State.castStartTime = GetTime()
@@ -819,9 +820,17 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, arg2, arg3, arg4, arg
         -- We'll set it false in LOOT_CLOSED instead
         FK:Debug("Fishing channel stopped (waiting for loot)")
 
-        -- Stop alerts
-        if FK.Alerts and FK.Alerts.OnFishingEnd then
-            FK.Alerts:OnFishingEnd()
+        -- Only stop alerts if this CHANNEL_STOP belongs to the current bobber.
+        -- On a re-cast, SPELLCAST_START bumps castGen before CHANNEL_STOP for the
+        -- old bobber fires. Comparing channelCastGen (set at CHANNEL_START) against
+        -- the current castGen lets us skip RestoreFishingSound for the old bobber.
+        if FK.State.channelCastGen == FK.State.castGen then
+            if FK.Alerts and FK.Alerts.OnFishingEnd then
+                FK.Alerts:OnFishingEnd()
+            end
+        else
+            FK:Debug("CHANNEL_STOP skipped Alerts:OnFishingEnd (recast detected, channelGen=" ..
+                tostring(FK.State.channelCastGen) .. " castGen=" .. FK.State.castGen .. ")")
         end
 
         -- Set a flag to know we're waiting for loot

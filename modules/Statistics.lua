@@ -32,6 +32,9 @@ local sessionData = {
     -- Efficiency tracking (catches per 5-min bucket)
     efficiencyBuckets = {},
     lastBucketTime = 0,
+    -- Fishing-time tracking: only counts seconds while pole is equipped
+    fishingTime = 0,          -- accumulated seconds with pole equipped
+    fishingPoleEquipTime = nil,  -- GetTime() when pole was last equipped, nil when unequipped
 }
 
 -- Pending loot tracking (for when loot window is open)
@@ -434,6 +437,8 @@ function Stats:ResetSession()
         blendedCopper = 0,
         efficiencyBuckets = {},
         lastBucketTime = 0,
+        fishingTime = 0,
+        fishingPoleEquipTime = nil,
     }
 
     if FK.chardb and FK.chardb.stats then
@@ -442,6 +447,28 @@ function Stats:ResetSession()
     end
 
     FK:Print("Session statistics reset.", FK.Colors.info)
+end
+
+-- Called by Equipment module when fishing pole is equipped.
+-- Starts the fishing-time clock for the new session.
+function Stats:OnFishingGearEquipped()
+    sessionData.fishingPoleEquipTime = GetTime()
+    FK:Debug("Fishing gear equipped - session timer started")
+end
+
+-- Called by Equipment module when fishing pole is unequipped.
+-- Saves and resets the session so the timer starts fresh next time.
+function Stats:OnFishingGearUnequipped()
+    -- Accumulate any time that was running
+    if sessionData.fishingPoleEquipTime then
+        sessionData.fishingTime = (sessionData.fishingTime or 0) + (GetTime() - sessionData.fishingPoleEquipTime)
+        sessionData.fishingPoleEquipTime = nil
+    end
+    -- Save the completed session before resetting
+    self:SaveSession()
+    -- Reset so the next equip starts a fresh session
+    self:ResetSession()
+    FK:Debug("Fishing gear unequipped - session saved and reset")
 end
 
 function Stats:ResetStats()
@@ -473,10 +500,19 @@ end
 -- ============================================================================
 
 function Stats:GetSessionStats()
-    local duration = GetTime() - sessionData.startTime
+    -- Only count time while fishing gear is equipped
+    local duration = sessionData.fishingTime or 0
+    if sessionData.fishingPoleEquipTime then
+        duration = duration + (GetTime() - sessionData.fishingPoleEquipTime)
+    end
+
+    -- Exclude the in-progress cast from the denominator so success rate is not
+    -- immediately penalised the moment the bobber hits the water.
+    local completedCasts = sessionData.casts - (FK.State.isFishing and 1 or 0)
+    completedCasts = math.max(completedCasts, 0)
     local successRate = 0
-    if sessionData.casts > 0 then
-        successRate = (sessionData.catches / sessionData.casts) * 100
+    if completedCasts > 0 then
+        successRate = (sessionData.catches / completedCasts) * 100
     end
 
     return {

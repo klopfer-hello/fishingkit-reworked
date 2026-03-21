@@ -128,6 +128,9 @@ end
 -- ============================================================================
 
 function Equip:ScanEquipment()
+    -- Snapshot pole state before resetting so we can detect changes
+    local prevHasPole = equipState.hasFishingPole
+
     -- Reset state
     equipState.hasFishingPole = false
     equipState.currentPoleBonus = 0
@@ -184,6 +187,19 @@ function Equip:ScanEquipment()
 
     FK:Debug("Equipment scanned. Pole: " .. tostring(equipState.hasFishingPole) ..
              ", Total Bonus: " .. equipState.totalBonus)
+
+    -- Notify Statistics when pole equip state changes
+    if equipState.hasFishingPole ~= prevHasPole then
+        if equipState.hasFishingPole then
+            if FK.Statistics and FK.Statistics.OnFishingGearEquipped then
+                FK.Statistics:OnFishingGearEquipped()
+            end
+        else
+            if FK.Statistics and FK.Statistics.OnFishingGearUnequipped then
+                FK.Statistics:OnFishingGearUnequipped()
+            end
+        end
+    end
 end
 
 function Equip:ScanLure()
