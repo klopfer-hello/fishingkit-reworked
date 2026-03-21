@@ -159,7 +159,7 @@ function Config:CreateConfigFrame()
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 
     -- Custom flat tab buttons
-    local tabs = { "General", "Alerts", "Gear", "Pools", "Routes", "Stats" }
+    local tabs = { "General", "Alerts", "Gear", "Pools", "Routes", "Auto", "Stats" }
     local tabButtons = {}
     local tabWidth = (FRAME_WIDTH - PADDING * 2) / #tabs
 
@@ -228,6 +228,7 @@ function Config:CreateConfigFrame()
     self:CreateEquipmentTab(content)
     self:CreatePoolsTab(content)
     self:CreateRoutesTab(content)
+    self:CreateAutomationTab(content)
     self:CreateStatisticsTab(content)
 
     -- Bottom divider
@@ -296,7 +297,8 @@ function Config:SelectTab(tabIndex)
     if frame.equipmentPanel  then frame.equipmentPanel:SetShown(tabIndex == 3) end
     if frame.poolsPanel      then frame.poolsPanel:SetShown(tabIndex == 4) end
     if frame.routesPanel     then frame.routesPanel:SetShown(tabIndex == 5) end
-    if frame.statisticsPanel then frame.statisticsPanel:SetShown(tabIndex == 6) end
+    if frame.automationPanel then frame.automationPanel:SetShown(tabIndex == 6) end
+    if frame.statisticsPanel then frame.statisticsPanel:SetShown(tabIndex == 7) end
 end
 
 -- ============================================================================
@@ -343,12 +345,6 @@ function Config:CreateGeneralTab(parent)
     local minimapCheck = self:CreateCheckbox(panel, "Show minimap button", yOffset, function(checked)
         FK.db.settings.showMinimap = checked
     end, function() return FK.db.settings.showMinimap end)
-    yOffset = yOffset - ROW_HEIGHT
-
-    -- Double-right-click casting
-    local doubleClickCheck = self:CreateCheckbox(panel, "Double-right-click to cast", yOffset, function(checked)
-        FK.db.settings.doubleClickCast = checked
-    end, function() return FK.db.settings.doubleClickCast end)
     yOffset = yOffset - ROW_HEIGHT
 
     configState.frame.generalPanel = panel
@@ -451,28 +447,10 @@ function Config:CreateEquipmentTab(parent)
 
     yOffset = self:CreateSectionHeader(panel, "EQUIPMENT MANAGEMENT", yOffset)
 
-    -- Auto-equip
-    local autoEquipCheck = self:CreateCheckbox(panel, "Auto-save normal gear when equipping fishing gear", yOffset, function(checked)
-        FK.db.settings.autoEquip = checked
-    end, function() return FK.db.settings.autoEquip end)
-    yOffset = yOffset - ROW_HEIGHT
-
     -- Auto-lure
     local autoLureCheck = self:CreateCheckbox(panel, "Remind to apply lure when missing", yOffset, function(checked)
         FK.db.settings.autoLure = checked
     end, function() return FK.db.settings.autoLure end)
-    yOffset = yOffset - ROW_HEIGHT
-
-    -- Auto-combat swap
-    local autoCombatCheck = self:CreateCheckbox(panel, "Auto swap weapons in combat, restore pole after", yOffset, function(checked)
-        FK.db.settings.autoCombatSwap = checked
-    end, function() return FK.db.settings.autoCombatSwap end)
-    yOffset = yOffset - ROW_HEIGHT
-
-    -- Auto-open containers
-    local autoOpenCheck = self:CreateCheckbox(panel, "Auto-open crates and scroll cases after fishing", yOffset, function(checked)
-        FK.db.settings.autoOpenContainers = checked
-    end, function() return FK.db.settings.autoOpenContainers end)
     yOffset = yOffset - ROW_HEIGHT * 1.5
 
     yOffset = self:CreateSectionHeader(panel, "GEAR SETS", yOffset)
@@ -580,14 +558,6 @@ function Config:CreatePoolsTab(parent)
             FK.Pools:RefreshAllPins()
         end
     end, function() return FK.db.settings.showCommunityPools end)
-    yOffset = yOffset - ROW_HEIGHT
-
-    yOffset = self:CreateSectionHeader(panel, "FIND FISH TRACKING", yOffset)
-
-    -- Auto Find Fish
-    local autoFindFishCheck = self:CreateCheckbox(panel, "Auto-enable Find Fish when equipping fishing gear", yOffset, function(checked)
-        FK.db.settings.autoFindFish = checked
-    end, function() return FK.db.settings.autoFindFish end)
     yOffset = yOffset - ROW_HEIGHT
 
     yOffset = self:CreateSectionHeader(panel, "POOL DATA", yOffset)
@@ -718,6 +688,53 @@ function Config:CreateRoutesTab(parent)
     end)
 
     configState.frame.routesPanel = panel
+end
+
+-- ============================================================================
+-- Automation Tab
+-- ============================================================================
+
+function Config:CreateAutomationTab(parent)
+    local panel = CreateFrame("Frame", nil, parent)
+    panel:SetAllPoints()
+    panel:Hide()
+
+    local yOffset = 0
+
+    yOffset = self:CreateSectionHeader(panel, "CASTING", yOffset)
+
+    local doubleClickCheck = self:CreateCheckbox(panel, "Double-right-click to cast", yOffset, function(checked)
+        FK.db.settings.doubleClickCast = checked
+    end, function() return FK.db.settings.doubleClickCast end)
+    yOffset = yOffset - ROW_HEIGHT * 1.5
+
+    yOffset = self:CreateSectionHeader(panel, "GEAR", yOffset)
+
+    local autoEquipCheck = self:CreateCheckbox(panel, "Auto-save normal gear when equipping fishing gear", yOffset, function(checked)
+        FK.db.settings.autoEquip = checked
+    end, function() return FK.db.settings.autoEquip end)
+    yOffset = yOffset - ROW_HEIGHT
+
+    local autoCombatCheck = self:CreateCheckbox(panel, "Auto swap weapons in combat, restore pole after", yOffset, function(checked)
+        FK.db.settings.autoCombatSwap = checked
+    end, function() return FK.db.settings.autoCombatSwap end)
+    yOffset = yOffset - ROW_HEIGHT * 1.5
+
+    yOffset = self:CreateSectionHeader(panel, "LOOT", yOffset)
+
+    local autoOpenCheck = self:CreateCheckbox(panel, "Auto-open crates and scroll cases after fishing", yOffset, function(checked)
+        FK.db.settings.autoOpenContainers = checked
+    end, function() return FK.db.settings.autoOpenContainers end)
+    yOffset = yOffset - ROW_HEIGHT * 1.5
+
+    yOffset = self:CreateSectionHeader(panel, "TRACKING", yOffset)
+
+    local autoFindFishCheck = self:CreateCheckbox(panel, "Auto-enable Find Fish when equipping fishing gear", yOffset, function(checked)
+        FK.db.settings.autoFindFish = checked
+    end, function() return FK.db.settings.autoFindFish end)
+    yOffset = yOffset - ROW_HEIGHT
+
+    configState.frame.automationPanel = panel
 end
 
 function Config:UpdatePoolsDisplay(panel)
@@ -997,6 +1014,7 @@ function Config:ResetToDefaults()
         autoEquip = false,
         autoLure = false,
         autoCombatSwap = true,
+        autoOpenContainers = true,
         doubleClickCast = true,
         enhancedSound = true,
         enhanceSoundScale = 1.0,
