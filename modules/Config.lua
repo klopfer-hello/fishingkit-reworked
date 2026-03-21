@@ -464,7 +464,7 @@ function Config:CreateEquipmentTab(parent)
     yOffset = yOffset - ROW_HEIGHT
 
     -- Auto-combat swap
-    local autoCombatCheck = self:CreateCheckbox(panel, "Re-equip fishing gear after combat", yOffset, function(checked)
+    local autoCombatCheck = self:CreateCheckbox(panel, "Auto swap weapons in combat, restore pole after", yOffset, function(checked)
         FK.db.settings.autoCombatSwap = checked
     end, function() return FK.db.settings.autoCombatSwap end)
     yOffset = yOffset - ROW_HEIGHT * 1.5

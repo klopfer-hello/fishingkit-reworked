@@ -321,7 +321,14 @@ function Equip:SaveNormalGear()
         offHand = offHand,
     }
 
-    -- Debug output to verify what was saved
+    -- Keep a weapons-only snapshot for EquipCombatWeapons.
+    -- This is saved here (from a clean non-fishing state) so it never gets
+    -- contaminated by fishing hat/boots/gloves worn during a combat swap.
+    FK.chardb.combatWeapons = {
+        mainHand = mainHand,
+        offHand = offHand,
+    }
+
     FK:Debug("Normal gear saved:")
     FK:Debug("  MainHand: " .. (mainHand or "empty"))
     FK:Debug("  OffHand: " .. (offHand or "empty"))
@@ -390,6 +397,57 @@ function Equip:EquipFishingGear()
             FK.Pools:EnableFindFishTracking()
         end
     end)
+
+    return true
+end
+
+-- Equip only the weapon slots (mainHand + offHand) from saved normal gear.
+-- Called on combat entry so the player has their weapon during the fight.
+-- Uses EquipItemByName("item:ID", slot) — the format used by FishingBuddy,
+-- confirmed to work in TBC Classic. Full hyperlinks are NOT accepted.
+-- PickupContainerItem (used in EquipItemByLink) IS blocked by combat lockdown,
+-- so this function bypasses EquipItemByLink entirely.
+function Equip:EquipCombatWeapons()
+    if not FK.chardb or not FK.chardb.combatWeapons then
+        FK:Debug("EquipCombatWeapons: no combat weapons saved")
+        return false
+    end
+
+    local gear = FK.chardb.combatWeapons
+    if not gear.mainHand and not gear.offHand then
+        FK:Debug("EquipCombatWeapons: combat weapons set is empty")
+        return false
+    end
+
+    -- In TBC Classic combat, only the "item:ID" format works with EquipItemByName.
+    -- Item-name format fails silently. Both calls are made immediately from
+    -- PLAYER_REGEN_DISABLED — calling from later events (UNIT_INVENTORY_CHANGED)
+    -- fails because lockdown is fully active by then.
+    local function EquipInCombat(itemLink, slot, label)
+        local itemID = self:GetItemIDFromLink(itemLink)
+        if not itemID then return end
+        EquipItemByName("item:" .. itemID, slot)
+        FK:Debug("EquipCombatWeapons: " .. label .. " -> item:" .. itemID)
+    end
+
+    if gear.mainHand then
+        EquipInCombat(gear.mainHand, SLOT_MAINHAND, "mainHand")
+    end
+
+    if gear.offHand then
+        local targetOHID = self:GetItemIDFromLink(gear.offHand)
+        if targetOHID then
+            -- Fishing poles don't displace slot 17, so the offhand may already be there.
+            -- EquipItemByName only searches bags and silently fails if the item is in slot 17.
+            local currentOHID = self:GetItemIDFromLink(GetInventoryItemLink("player", SLOT_OFFHAND) or "")
+            if currentOHID ~= targetOHID then
+                -- Both equips called immediately while still in PLAYER_REGEN_DISABLED context.
+                -- Fishing poles are one-handed so equipping the offhand before the mainhand
+                -- settles is safe — the slot is already free.
+                EquipInCombat(gear.offHand, SLOT_OFFHAND, "offHand")
+            end
+        end
+    end
 
     return true
 end

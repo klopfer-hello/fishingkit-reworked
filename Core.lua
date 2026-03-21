@@ -194,6 +194,14 @@ local defaultCharDB = {
         offHand = nil,
     },
 
+    -- Weapons-only subset of normalGear for in-combat equip.
+    -- Populated automatically by SaveNormalGear so it always reflects the
+    -- weapons the player had before equipping fishing gear.
+    combatWeapons = {
+        mainHand = nil,
+        offHand = nil,
+    },
+
     -- Session data
     sessions = {},
 
@@ -1080,11 +1088,19 @@ eventHandlers.PLAYER_REGEN_DISABLED = function()
         FK.State._combatSwapRetry = nil
     end
 
-    -- Auto-combat recovery: remember we were fishing so we can resume after combat
+    -- Auto-combat weapon swap: equip weapons immediately, restore pole after combat
     if FK.db and FK.db.settings.autoCombatSwap then
         if FK.Equipment and FK.Equipment:HasFishingPole() then
+            -- Snapshot the fishing pole now so PLAYER_REGEN_ENABLED can restore just
+            -- the pole without touching head/hands/feet or calling SaveNormalGear.
+            FK.State.preCombatPole = GetInventoryItemLink("player", 16)  -- SLOT_MAINHAND
             FK.State.combatSwapQueued = true
-            FK:Print("Combat detected! Will re-equip fishing gear when combat ends.", FK.Colors.warning)
+            local swapped = FK.Equipment:EquipCombatWeapons()
+            if swapped then
+                FK:Print("Combat! Equipping weapons — fishing pole will restore after.", FK.Colors.warning)
+            else
+                FK:Print("Combat detected, but no normal weapons saved. Use /fk savegear normal first.", FK.Colors.warning)
+            end
         end
     end
 end
@@ -1099,48 +1115,59 @@ eventHandlers.PLAYER_REGEN_ENABLED = function()
         FK.Navigation:OnCombatEnd()
     end
 
-    -- Resume fishing state after combat: re-equip fishing gear
+    -- Resume fishing: restore only the fishing pole that was in mainhand before combat.
+    -- We do NOT call EquipFishingGear here — that would re-invoke SaveNormalGear while
+    -- head/hands/feet are still in the fishing-gear state, corrupting normalGear.
     if FK.State.combatSwapQueued then
         FK.State.combatSwapQueued = false
 
-        -- Cancel any previous swap retry that may still be running
         if FK.State._combatSwapRetry then
             FK.State._combatSwapRetry.cancelled = true
         end
 
-        if FK.Equipment and FK.Equipment.EquipFishingGear then
-            local attempt = { cancelled = false, count = 0 }
-            FK.State._combatSwapRetry = attempt
+        local poleLink = FK.State.preCombatPole
+        FK.State.preCombatPole = nil
 
-            local function TrySwap()
-                if attempt.cancelled then return end
-                attempt.count = attempt.count + 1
+        if poleLink and FK.Equipment then
+            local poleID = FK.Equipment:GetItemIDFromLink(poleLink)
+            if poleID then
+                local attempt = { cancelled = false, count = 0 }
+                FK.State._combatSwapRetry = attempt
 
-                if InCombatLockdown() then
-                    -- Still locked, retry up to 10 times (10 seconds total)
-                    if attempt.count < 10 then
-                        C_Timer.After(1.0, TrySwap)
-                    else
-                        FK:Print("Combat lockdown persisted too long. Use /fk equip to re-equip fishing gear.", FK.Colors.warning)
-                        FK.State._combatSwapRetry = nil
+                local function TryRestorePole()
+                    if attempt.cancelled then return end
+                    attempt.count = attempt.count + 1
+
+                    if InCombatLockdown() then
+                        if attempt.count < 10 then
+                            C_Timer.After(1.0, TryRestorePole)
+                        else
+                            FK:Print("Combat lockdown persisted. Use /fk equip to restore fishing gear.", FK.Colors.warning)
+                            FK.State._combatSwapRetry = nil
+                        end
+                        return
                     end
-                    return
-                end
 
-                if not FK.Equipment then
+                    -- Guard: if the pole is already in slot 16 (weapons never swapped),
+                    -- EquipItemByName would pick it up and leave the slot empty.
+                    local currentMHLink = GetInventoryItemLink("player", 16)
+                    local currentMHID = currentMHLink and FK.Equipment:GetItemIDFromLink(currentMHLink)
+                    if currentMHID == poleID then
+                        FK:Debug("Pole restore: pole already in slot 16, skipping")
+                    else
+                        EquipItemByName("item:" .. poleID, 16)  -- SLOT_MAINHAND
+                    end
+                    FK:Print("Fishing pole restored.", FK.Colors.success)
                     FK.State._combatSwapRetry = nil
-                    return
+
+                    -- Rescan so HasFishingPole() reflects reality again
+                    C_Timer.After(0.5, function()
+                        if FK.Equipment then FK.Equipment:ScanEquipment() end
+                    end)
                 end
 
-                local success = FK.Equipment:EquipFishingGear()
-                if not success then
-                    FK:Print("Could not re-equip fishing gear. Use /fk equip to swap manually.", FK.Colors.warning)
-                end
-                FK.State._combatSwapRetry = nil
+                C_Timer.After(0.5, TryRestorePole)
             end
-
-            -- First attempt after a short delay for lockdown to clear
-            C_Timer.After(0.5, TrySwap)
         end
     end
 end
