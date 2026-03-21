@@ -592,7 +592,7 @@ local function CreatePoolPin(name, parent, size)
     -- Outer ring (border)
     local border = pin:CreateTexture(nil, "BACKGROUND")
     border:SetAllPoints()
-    border:SetTexture("Interface\\AddOns\\FishingKit\\track_circle")
+    border:SetTexture("Interface\\AddOns\\FishingKit\\media\\track_circle")
     border:SetVertexColor(PIN_BORDER_COLOR.r, PIN_BORDER_COLOR.g, PIN_BORDER_COLOR.b, PIN_BORDER_COLOR.a)
     pin.border = border
 
@@ -600,14 +600,14 @@ local function CreatePoolPin(name, parent, size)
     local dot = pin:CreateTexture(nil, "ARTWORK")
     dot:SetPoint("TOPLEFT", 2, -2)
     dot:SetPoint("BOTTOMRIGHT", -2, 2)
-    dot:SetTexture("Interface\\AddOns\\FishingKit\\track_circle")
+    dot:SetTexture("Interface\\AddOns\\FishingKit\\media\\track_circle")
     dot:SetVertexColor(PIN_COLOR.r, PIN_COLOR.g, PIN_COLOR.b, PIN_COLOR.a)
     pin.dot = dot
 
     -- Highlight on hover - slightly brighter
     local highlight = pin:CreateTexture(nil, "HIGHLIGHT")
     highlight:SetAllPoints()
-    highlight:SetTexture("Interface\\AddOns\\FishingKit\\track_circle")
+    highlight:SetTexture("Interface\\AddOns\\FishingKit\\media\\track_circle")
     highlight:SetVertexColor(1, 1, 1, 0.3)
     highlight:SetBlendMode("ADD")
 
@@ -816,8 +816,8 @@ function FishingKitWorldMapPinMixin:OnAcquired(poolData)
     self:SetSize(12, 12)
 
     -- Border and dot textures — colored by source (community vs discovered)
-    self.border:SetTexture("Interface\\AddOns\\FishingKit\\track_circle")
-    self.dot:SetTexture("Interface\\AddOns\\FishingKit\\track_circle")
+    self.border:SetTexture("Interface\\AddOns\\FishingKit\\media\\track_circle")
+    self.dot:SetTexture("Interface\\AddOns\\FishingKit\\media\\track_circle")
     ColorPinForPool(self, poolData)
 end
 

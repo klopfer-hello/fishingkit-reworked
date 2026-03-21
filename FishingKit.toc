@@ -5,7 +5,7 @@
 ## Version: 1.0.12
 ## SavedVariables: FishingKitDB
 ## SavedVariablesPerCharacter: FishingKitCharDB
-## IconTexture: Interface\AddOns\FishingKit\fishingicon.blp
+## IconTexture: Interface\AddOns\FishingKit\media\fishingicon.blp
 
 # https://warcraft.wiki.gg/wiki/Addon_Categories
 ## Category: Professions
@@ -22,17 +22,17 @@
 
 # Core Systems
 Core.lua
-Database.lua
-Statistics.lua
+modules\Database.lua
+modules\Statistics.lua
 
 # Features
 FishingKit.xml
-Equipment.lua
-PoolData.lua
-Pools.lua
-Navigation.lua
-Alerts.lua
+modules\Equipment.lua
+modules\PoolData.lua
+modules\Pools.lua
+modules\Navigation.lua
+modules\Alerts.lua
 
 # Interface
-UI.lua
-Config.lua
+modules\UI.lua
+modules\Config.lua

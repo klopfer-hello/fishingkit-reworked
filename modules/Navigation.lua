@@ -131,7 +131,7 @@ local function CreateArrowFrame()
     local arrow = frame:CreateTexture(nil, "ARTWORK")
     arrow:SetSize(56, 42)
     arrow:SetPoint("TOP", frame, "TOP", 0, -8)
-    arrow:SetTexture("Interface\\AddOns\\FishingKit\\arrow")
+    arrow:SetTexture("Interface\\AddOns\\FishingKit\\media\\arrow")
     frame.arrow = arrow
 
     -- Pool name text
