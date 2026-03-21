@@ -794,10 +794,8 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_START = function(unit, arg2, arg3, arg4, ar
         FK.State.isFishing = true
         FK.State.channelStarted = true  -- bobber is in the water
         FK.State.channelCastGen = FK.State.castGen  -- snapshot gen for this bobber
-        -- Also set cast start time here in case SPELLCAST_START didn't fire
-        if not FK.State.castStartTime then
-            FK.State.castStartTime = GetTime()
-        end
+        -- Reset cast start time when bobber lands (handles re-cast where SPELLCAST_START may not fire)
+        FK.State.castStartTime = GetTime()
         FK:Debug("CHANNEL_START set isFishing=true castStartTime=" .. tostring(FK.State.castStartTime))
         FK:Debug("Fishing channel started (bobber in water)")
 
