@@ -143,7 +143,7 @@ end
 -- ============================================================================
 
 function Stats:OnLootOpened()
-    if not FK.db.settings.trackLoot then return end
+    if not FK.db.settings.trackStats then return end
 
     -- Clear pending loot
     pendingLoot = {}
@@ -173,7 +173,7 @@ function Stats:OnLootOpened()
 end
 
 function Stats:OnLootSlotCleared(slot)
-    if not FK.db.settings.trackLoot then return end
+    if not FK.db.settings.trackStats then return end
 
     -- Find the item in pending loot
     for i, loot in ipairs(pendingLoot) do
