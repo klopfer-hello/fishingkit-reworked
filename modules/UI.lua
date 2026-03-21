@@ -1353,6 +1353,27 @@ function UI:GetOpenableItems()
     return items, totalCount
 end
 
+-- Auto-open all fishing containers (crates, scroll cases, clams) in bags.
+-- Called from Core.lua after LOOT_CLOSED for a fishing catch.
+-- Uses UseContainerItem with staggered 0.5s delays so the server can process
+-- each open before the next one is requested.
+function UI:AutoOpenContainers()
+    local items = self:GetOpenableItems()
+    if #items == 0 then return end
+
+    for i, item in ipairs(items) do
+        C_Timer.After((i - 1) * 0.5, function()
+            -- Re-verify the item is still in that bag slot (bag may have shifted)
+            local link = GetContainerItemLink(item.bag, item.slot)
+            local itemID = link and tonumber(string.match(link, "item:(%d+)"))
+            if itemID and OPENABLE_ITEMS[itemID] then
+                UseContainerItem(item.bag, item.slot)
+                FK:Debug("Auto-opened: " .. item.name .. " (bag " .. item.bag .. " slot " .. item.slot .. ")")
+            end
+        end)
+    end
+end
+
 function UI:UpdateClamButton()
     local frame = uiState.mainFrame
     if not frame or not frame.clamBtn then return end

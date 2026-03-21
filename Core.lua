@@ -104,6 +104,7 @@ local defaultDB = {
         autoEquip = false,
         autoLure = false,
         autoCombatSwap = true,
+        autoOpenContainers = true,
 
         -- v1.0.5 features
         enhancedSound = true,
@@ -1005,6 +1006,15 @@ eventHandlers.LOOT_CLOSED = function()
 
         -- Process catch & release auto-delete
         C_Timer.After(0.3, ProcessReleaseList)
+
+        -- Auto-open fishing containers (crates, scroll cases) if enabled
+        if FK.db and FK.db.settings.autoOpenContainers then
+            C_Timer.After(0.5, function()
+                if FK.UI and FK.UI.AutoOpenContainers then
+                    FK.UI:AutoOpenContainers()
+                end
+            end)
+        end
     end
 end
 

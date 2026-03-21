@@ -467,6 +467,12 @@ function Config:CreateEquipmentTab(parent)
     local autoCombatCheck = self:CreateCheckbox(panel, "Auto swap weapons in combat, restore pole after", yOffset, function(checked)
         FK.db.settings.autoCombatSwap = checked
     end, function() return FK.db.settings.autoCombatSwap end)
+    yOffset = yOffset - ROW_HEIGHT
+
+    -- Auto-open containers
+    local autoOpenCheck = self:CreateCheckbox(panel, "Auto-open crates and scroll cases after fishing", yOffset, function(checked)
+        FK.db.settings.autoOpenContainers = checked
+    end, function() return FK.db.settings.autoOpenContainers end)
     yOffset = yOffset - ROW_HEIGHT * 1.5
 
     yOffset = self:CreateSectionHeader(panel, "GEAR SETS", yOffset)
