@@ -189,6 +189,69 @@ end
 function Stats:OnLootClosed()
 end
 
+-- Update all fish-count tables (session, chardb, globalStats) for one caught item.
+local function TrackFishCount(itemID, itemName, quantity, quality)
+    if not sessionData.fishCaught[itemID] then
+        sessionData.fishCaught[itemID] = { name = itemName, count = 0, quality = quality }
+    end
+    sessionData.fishCaught[itemID].count = sessionData.fishCaught[itemID].count + quantity
+
+    if FK.chardb and FK.chardb.stats then
+        if not FK.chardb.stats.fishCaught then FK.chardb.stats.fishCaught = {} end
+        if not FK.chardb.stats.fishCaught[itemID] then
+            FK.chardb.stats.fishCaught[itemID] = { name = itemName, count = 0, quality = quality, firstCaught = time() }
+        end
+        FK.chardb.stats.fishCaught[itemID].count = FK.chardb.stats.fishCaught[itemID].count + quantity
+        FK.chardb.stats.fishCaught[itemID].lastCaught = time()
+    end
+
+    if FK.db and FK.db.globalStats then
+        if not FK.db.globalStats.fishCaught then FK.db.globalStats.fishCaught = {} end
+        if not FK.db.globalStats.fishCaught[itemID] then
+            FK.db.globalStats.fishCaught[itemID] = { name = itemName, count = 0, quality = quality }
+        end
+        FK.db.globalStats.fishCaught[itemID].count = FK.db.globalStats.fishCaught[itemID].count + quantity
+    end
+end
+
+-- Update zone catch counters (session and chardb) for one caught item.
+local function TrackZoneCatch(zone, itemID, quantity)
+    if not zone or zone == "" then return end
+
+    if sessionData.zones[zone] then
+        sessionData.zones[zone].catches = (sessionData.zones[zone].catches or 0) + 1
+    end
+
+    if FK.chardb and FK.chardb.stats and FK.chardb.stats.zoneStats then
+        local zs = FK.chardb.stats.zoneStats[zone]
+        if zs then
+            zs.catches = (zs.catches or 0) + 1
+            if not zs.fish then zs.fish = {} end
+            zs.fish[itemID] = (zs.fish[itemID] or 0) + quantity
+        end
+    end
+end
+
+-- Update vendor/AH copper accumulators for one caught item.
+local function TrackGoldValue(lootData, itemID, quantity)
+    local _, _, _, _, _, _, _, _, _, _, sellPrice = GetItemInfo(lootData.link or itemID)
+    local vendorValue = (sellPrice and sellPrice > 0) and sellPrice or 0
+    if vendorValue > 0 then
+        sessionData.vendorCopper = (sessionData.vendorCopper or 0) + (vendorValue * quantity)
+    end
+
+    local ahValue = 0
+    if FK.db and FK.db.ahPrices and FK.db.ahPrices[itemID] then
+        ahValue = FK.db.ahPrices[itemID]
+        sessionData.ahCopper = (sessionData.ahCopper or 0) + (ahValue * quantity)
+    end
+
+    local blendedValue = ahValue > 0 and ahValue or vendorValue
+    if blendedValue > 0 then
+        sessionData.blendedCopper = (sessionData.blendedCopper or 0) + (blendedValue * quantity)
+    end
+end
+
 function Stats:RecordCatch(lootData)
     local itemID = lootData.itemID
     local itemName = lootData.name
@@ -196,9 +259,7 @@ function Stats:RecordCatch(lootData)
     local quality = lootData.quality or 0
     local zone = FK.State.currentZone or "Unknown"
 
-    -- Check if it's junk
     local isJunk = FK.Database:IsJunk(itemID)
-    local isFish = FK.Database:IsFish(itemID)
     local isSpecial = FK.Database:IsSpecial(itemID)
 
     if isJunk then
@@ -208,109 +269,29 @@ function Stats:RecordCatch(lootData)
         end
         FK:Debug("Junk recorded: " .. itemName)
     else
-        -- Count as catch
         sessionData.catches = sessionData.catches + 1
-
         if FK.chardb and FK.chardb.stats then
             FK.chardb.stats.totalCatches = (FK.chardb.stats.totalCatches or 0) + 1
             FK.chardb.stats.sessionCatches = (FK.chardb.stats.sessionCatches or 0) + 1
         end
-
         if FK.db and FK.db.globalStats then
             FK.db.globalStats.totalCatches = (FK.db.globalStats.totalCatches or 0) + 1
         end
 
-        -- Track by fish type
-        if not sessionData.fishCaught[itemID] then
-            sessionData.fishCaught[itemID] = { name = itemName, count = 0, quality = quality }
-        end
-        sessionData.fishCaught[itemID].count = sessionData.fishCaught[itemID].count + quantity
+        TrackFishCount(itemID, itemName, quantity, quality)
+        TrackZoneCatch(zone, itemID, quantity)
 
-        -- Per-character tracking
-        if FK.chardb and FK.chardb.stats then
-            if not FK.chardb.stats.fishCaught then
-                FK.chardb.stats.fishCaught = {}
-            end
-            if not FK.chardb.stats.fishCaught[itemID] then
-                FK.chardb.stats.fishCaught[itemID] = { name = itemName, count = 0, quality = quality, firstCaught = time() }
-            end
-            FK.chardb.stats.fishCaught[itemID].count = FK.chardb.stats.fishCaught[itemID].count + quantity
-            FK.chardb.stats.fishCaught[itemID].lastCaught = time()
-        end
-
-        -- Global tracking
-        if FK.db and FK.db.globalStats then
-            if not FK.db.globalStats.fishCaught then
-                FK.db.globalStats.fishCaught = {}
-            end
-            if not FK.db.globalStats.fishCaught[itemID] then
-                FK.db.globalStats.fishCaught[itemID] = { name = itemName, count = 0, quality = quality }
-            end
-            FK.db.globalStats.fishCaught[itemID].count = FK.db.globalStats.fishCaught[itemID].count + quantity
-        end
-
-        -- Zone tracking
-        if zone and zone ~= "" then
-            if sessionData.zones[zone] then
-                sessionData.zones[zone].catches = (sessionData.zones[zone].catches or 0) + 1
-            end
-
-            if FK.chardb and FK.chardb.stats and FK.chardb.stats.zoneStats then
-                if FK.chardb.stats.zoneStats[zone] then
-                    FK.chardb.stats.zoneStats[zone].catches = (FK.chardb.stats.zoneStats[zone].catches or 0) + 1
-
-                    if not FK.chardb.stats.zoneStats[zone].fish then
-                        FK.chardb.stats.zoneStats[zone].fish = {}
-                    end
-                    FK.chardb.stats.zoneStats[zone].fish[itemID] = (FK.chardb.stats.zoneStats[zone].fish[itemID] or 0) + quantity
-                end
-            end
-        end
-
-        -- Track rare catches
-        if quality >= 3 or isSpecial then
-            self:RecordRareCatch(lootData, zone)
-        end
-
-        -- Add to loot history
+        if quality >= 3 or isSpecial then self:RecordRareCatch(lootData, zone) end
         self:AddToLootHistory(lootData, zone)
 
-        -- Notify UI of catch
-        if FK.UI and FK.UI.OnCatch then
-            FK.UI:OnCatch(itemName, lootData.link)
-        end
-
-        -- Track efficiency bucket (5-minute intervals)
+        if FK.UI and FK.UI.OnCatch then FK.UI:OnCatch(itemName, lootData.link) end
         self:RecordEfficiencyBucket()
-
-        -- Check milestones
-        if FK.db and FK.db.settings.milestones then
-            self:CheckMilestone()
-        end
+        if FK.db and FK.db.settings.milestones then self:CheckMilestone() end
 
         FK:Debug("Catch recorded: " .. itemName .. " x" .. quantity)
     end
 
-    -- Calculate vendor value using GetItemInfo sellPrice (11th return)
-    -- Use itemLink first (more reliable in TBC), fall back to itemID
-    local _, _, _, _, _, _, _, _, _, _, sellPrice = GetItemInfo(lootData.link or itemID)
-    local vendorValue = (sellPrice and sellPrice > 0) and sellPrice or 0
-    if vendorValue > 0 then
-        sessionData.vendorCopper = (sessionData.vendorCopper or 0) + (vendorValue * quantity)
-    end
-
-    -- Calculate AH value if we have cached prices
-    local ahValue = 0
-    if FK.db and FK.db.ahPrices and FK.db.ahPrices[itemID] then
-        ahValue = FK.db.ahPrices[itemID]
-        sessionData.ahCopper = (sessionData.ahCopper or 0) + (ahValue * quantity)
-    end
-
-    -- Blended value: use AH price if available, otherwise vendor price
-    local blendedValue = ahValue > 0 and ahValue or vendorValue
-    if blendedValue > 0 then
-        sessionData.blendedCopper = (sessionData.blendedCopper or 0) + (blendedValue * quantity)
-    end
+    TrackGoldValue(lootData, itemID, quantity)
 end
 
 function Stats:RecordRareCatch(lootData, zone)
