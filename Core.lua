@@ -21,6 +21,7 @@ if not GetContainerNumSlots and C_Container then
     GetContainerItemLink = C_Container.GetContainerItemLink
     PickupContainerItem = C_Container.PickupContainerItem
     GetContainerNumFreeSlots = C_Container.GetContainerNumFreeSlots
+    UseContainerItem = C_Container.UseContainerItem
     -- C_Container.GetContainerItemInfo returns a table, legacy returns multiple values.
     -- Wrap it to return legacy-style: texture, itemCount, locked, quality, readable, lootable, itemLink, ...
     GetContainerItemInfo = function(bag, slot)

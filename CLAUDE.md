@@ -130,7 +130,7 @@ Key files to reference:
 - Item links follow pattern `item:(%d+)` for extracting itemID
 - **`EquipItemByName` in combat**: only `"item:ID"` format works under combat lockdown. Item-name strings (e.g. `"Fool's Bane"`) and full hyperlinks (`|H...|h`) silently fail. Must be called immediately from `PLAYER_REGEN_DISABLED` — by the time `UNIT_INVENTORY_CHANGED` fires, lockdown is fully active.
 - **Fishing poles don't displace slot 17**: equipping a pole in slot 16 does not unequip the offhand. `EquipItemByName` only searches bags, so if the offhand is already in slot 17 the call silently fails. Always check `GetInventoryItemLink("player", SLOT_OFFHAND)` before attempting to equip.
-- **`UseContainerItem(bag, slot)`** works outside combat from event handlers for opening containers.
+- **`UseContainerItem(bag, slot)`** — the legacy global does not exist on TBC Classic Anniversary; it is shimmed in Core.lua to `C_Container.UseContainerItem`. Works outside combat for opening containers.
 
 ## Coding Conventions
 
