@@ -16,10 +16,12 @@
 
 #### Auto-Lure Reapply
 - After each catch (on `LOOT_CLOSED`), FishingKit checks whether the fishing pole has an active lure
-- If no lure is active, or the current lure expires within 5 seconds, the best lure found in bags is applied automatically via `UseContainerItem`
+- If no lure is active, or the current lure expires within 5 seconds, the best lure found in bags is applied automatically via `UseContainerItem` + `UseInventoryItem(16)`
+- **Double-click cast integration**: when double-right-clicking to cast with no lure active, a `SecureActionButton` injects a `/use bag slot` + `/use 16` macro on that click — lure is applied immediately, Fishing casts on the next double-click
+- Uses `GLOBAL_MOUSE_DOWN` event (same approach as FishingBuddy) so `SetOverrideBindingClick` takes effect on the current mouse-down event
 - Prints a confirmation message with the lure name and bonus on successful application
 - Toggle on/off in **Config > Auto > LURE** section
-- Files changed: `Core.lua`, `modules/Equipment.lua`, `modules/Config.lua`
+- Files changed: `Core.lua`, `modules/Equipment.lua`, `modules/Config.lua`, `modules/UI.lua`
 
 ## v1.1.0
 
