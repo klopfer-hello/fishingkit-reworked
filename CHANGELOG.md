@@ -1,5 +1,11 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.2.1
+
+### Meta
+- Renamed addon to **Extreme FishingKit**
+- Added CurseForge auto-release via GitHub Actions (`BigWigsMods/packager`)
+
 ## v1.2.0
 
 ### New Features
