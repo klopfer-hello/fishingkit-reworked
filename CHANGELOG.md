@@ -1,4 +1,4 @@
-# FishingKit - TBC Anniversary Edition - Changelog
+# Extreme FishingKit - TBC Anniversary Edition - Changelog
 
 ## v1.2.0
 
@@ -15,7 +15,7 @@
 - New module: `modules/DailyQuests.lua`
 
 #### Auto-Lure Reapply
-- After each catch (on `LOOT_CLOSED`), FishingKit checks whether the fishing pole has an active lure
+- After each catch (on `LOOT_CLOSED`), Extreme FishingKit checks whether the fishing pole has an active lure
 - If no lure is active, or the current lure expires within 5 seconds, the best lure found in bags is applied automatically via `UseContainerItem` + `UseInventoryItem(16)`
 - **Double-click cast integration**: when double-right-clicking to cast with no lure active, a `SecureActionButton` injects a `/use bag slot` + `/use 16` macro on that click — lure is applied immediately, Fishing casts on the next double-click
 - Uses `GLOBAL_MOUSE_DOWN` event (same approach as FishingBuddy) so `SetOverrideBindingClick` takes effect on the current mouse-down event
@@ -374,7 +374,7 @@ Full codebase audit for API compliance, memory safety, documentation accuracy, a
 ### New Features
 
 #### Tooltip Enrichment
-- Hovering over any fish item (bags, AH, loot, trade) shows FishingKit data
+- Hovering over any fish item (bags, AH, loot, trade) shows Extreme FishingKit data
 - Displays: total caught, catch zones, minimum skill requirement, seasonal availability
 - Shows cached AH price per unit and your best personal catch zone
 - Skill requirement shown in green (met) or red (not met)
@@ -406,10 +406,10 @@ Full codebase audit for API compliance, memory safety, documentation accuracy, a
 - Completely hidden outside contest hours or when not in STV
 
 #### Key Bindings
-- FishingKit actions appear in the WoW Key Bindings menu under "FishingKit" header
+- Extreme FishingKit actions appear in the WoW Key Bindings menu under "Extreme FishingKit" header
 - Bindable actions: Toggle Panel, Swap Fishing/Normal Gear, Apply Lure (Info), Toggle Statistics, Toggle Settings
-- Access via Game Menu > Key Bindings > FishingKit
-- Bindable actions available in Game Menu > Key Bindings > FishingKit
+- Access via Game Menu > Key Bindings > Extreme FishingKit
+- Bindable actions available in Game Menu > Key Bindings > Extreme FishingKit
 
 #### Session Efficiency Trend
 - Stats panel Overview tab now includes a fish/hour bar graph over time

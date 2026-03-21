@@ -1,4 +1,4 @@
-# FishingKit — Personal Fork
+# Extreme FishingKit — Personal Fork
 
 This is a personal fork of the original **FishingKit** addon for World of Warcraft TBC Classic Anniversary.
 
@@ -8,11 +8,11 @@ All credit for the original work goes to the original author. This fork exists p
 
 ---
 
-# FishingKit - TBC Anniversary Edition
+# Extreme FishingKit - TBC Anniversary Edition
 
 ## Description
 
-**FishingKit** is a comprehensive fishing companion addon for World of Warcraft: The Burning Crusade Classic (Anniversary Edition). It provides everything you need for an enhanced fishing experience - from gear management and lure tracking to detailed statistics, gold tracking, auction house price scanning, and quality-of-life improvements.
+**Extreme FishingKit** is a comprehensive fishing companion addon for World of Warcraft: The Burning Crusade Classic (Anniversary Edition). It provides everything you need for an enhanced fishing experience - from gear management and lure tracking to detailed statistics, gold tracking, auction house price scanning, and quality-of-life improvements.
 
 ## Features
 
@@ -108,7 +108,7 @@ All credit for the original work goes to the original author. This fork exists p
 - Fish tooltips show cached AH prices
 
 ### 🎣 Tooltip Enrichment
-- Hover over any fish item (bags, AH, loot, trade) to see FishingKit data
+- Hover over any fish item (bags, AH, loot, trade) to see Extreme FishingKit data
 - Shows: total caught, catch zones, minimum skill (color-coded), seasonal availability
 - Displays cached AH price per unit
 - Shows your best personal catch zone for that fish
@@ -130,7 +130,7 @@ All credit for the original work goes to the original author. This fork exists p
 ### ⌨️ Key Bindings
 - All major actions available in the WoW Key Bindings menu
 - Bindable: Toggle Panel, Swap Fishing/Normal Gear, Lure Info, Toggle Stats, Toggle Settings
-- Access via Game Menu > Key Bindings > FishingKit
+- Access via Game Menu > Key Bindings > Extreme FishingKit
 
 ### 🗺️ Pre-filled Pool Database
 - Ships with **653 known pool spawn locations** across 27 zones (24 Classic + 3 TBC)

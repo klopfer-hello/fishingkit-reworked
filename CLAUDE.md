@@ -1,8 +1,8 @@
-# FishingKit - CLAUDE.md
+# Extreme FishingKit - CLAUDE.md
 
 ## Project Overview
 
-FishingKit is a World of Warcraft addon for **TBC Classic Anniversary** (interface version 20504/20505, game version 2.5.5). It provides fishing quality-of-life features: session statistics, catch tracking, fishing alerts, gear/lure management, and pool location recording.
+Extreme FishingKit is a World of Warcraft addon for **TBC Classic Anniversary** (interface version 20504/20505, game version 2.5.5). It provides fishing quality-of-life features: session statistics, catch tracking, fishing alerts, gear/lure management, and pool location recording.
 
 The addon uses a global namespace `FK` (also `FishingKit`) populated via the addon vararg `local ADDON_NAME, FK = ...`.
 
