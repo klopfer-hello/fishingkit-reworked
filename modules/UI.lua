@@ -170,26 +170,32 @@ function UI:CreateMainFrame()
     frame.titleText = titleText
     frame.titleBar  = titleBar
 
+    -- Helper: small styled icon button matching config window aesthetic
+    local function MakeIconBtn(parent, symbol)
+        local btn = CreateFrame("Button", nil, parent)
+        btn:SetSize(16, 16)
+        local bg = btn:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(D.barBg[1], D.barBg[2], D.barBg[3], 0.8)
+        local lbl = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        lbl:SetPoint("CENTER", 0, 0)
+        lbl:SetText(symbol)
+        lbl:SetTextColor(D.label[1], D.label[2], D.label[3])
+        btn.lbl = lbl
+        btn:SetScript("OnEnter", function(self) self.lbl:SetTextColor(D.value[1], D.value[2], D.value[3]) end)
+        btn:SetScript("OnLeave", function(self) self.lbl:SetTextColor(D.label[1], D.label[2], D.label[3]) end)
+        return btn
+    end
+
     -- Collapse button
-    local collapseBtn = CreateFrame("Button", nil, titleBar)
-    collapseBtn:SetSize(16, 16)
-    collapseBtn:SetPoint("RIGHT", titleBar, "RIGHT", -20, 0)
-    collapseBtn:SetNormalTexture("Interface\\Buttons\\UI-MinusButton-Up")
-    collapseBtn:SetPushedTexture("Interface\\Buttons\\UI-MinusButton-Down")
-    collapseBtn:SetHighlightTexture("Interface\\Buttons\\UI-MinusButton-Highlight")
+    local collapseBtn = MakeIconBtn(titleBar, "−")
+    collapseBtn:SetPoint("RIGHT", titleBar, "RIGHT", -18, 0)
     collapseBtn:SetScript("OnClick", function() UI:ToggleCollapse() end)
-    collapseBtn:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(FK.db.settings.collapsed and "Expand" or "Collapse", 1, 0.82, 0)
-        GameTooltip:Show()
-    end)
-    collapseBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     frame.collapseBtn = collapseBtn
 
     -- Close button
-    local closeBtn = CreateFrame("Button", nil, titleBar, "UIPanelCloseButton")
-    closeBtn:SetSize(20, 20)
-    closeBtn:SetPoint("RIGHT", titleBar, "RIGHT", 2, 0)
+    local closeBtn = MakeIconBtn(titleBar, "×")
+    closeBtn:SetPoint("RIGHT", titleBar, "RIGHT", 0, 0)
     closeBtn:SetScript("OnClick", function() UI:Hide() end)
 
     -- Thin separator line under the title
@@ -1528,15 +1534,7 @@ function UI:ApplyCollapsedState()
 
     -- Update button icon (minus to collapse, plus to expand)
     if frame.collapseBtn then
-        if collapsed then
-            frame.collapseBtn:SetNormalTexture("Interface\\Buttons\\UI-PlusButton-Up")
-            frame.collapseBtn:SetPushedTexture("Interface\\Buttons\\UI-PlusButton-Down")
-            frame.collapseBtn:SetHighlightTexture("Interface\\Buttons\\UI-PlusButton-Highlight")
-        else
-            frame.collapseBtn:SetNormalTexture("Interface\\Buttons\\UI-MinusButton-Up")
-            frame.collapseBtn:SetPushedTexture("Interface\\Buttons\\UI-MinusButton-Down")
-            frame.collapseBtn:SetHighlightTexture("Interface\\Buttons\\UI-MinusButton-Highlight")
-        end
+        frame.collapseBtn.lbl:SetText(collapsed and "+" or "−")
     end
 end
 
