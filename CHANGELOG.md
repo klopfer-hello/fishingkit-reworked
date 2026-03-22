@@ -1,5 +1,17 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.2.3
+
+### Bug Fixes
+
+- **Daily quest reminder now fires when no quest has been picked up yet** — previously the login reminder only printed if the quest was already in the player's quest log; it was silent when the player hadn't visited Old Man Barlo yet, which is the most common case. Now reminds to visit Barlo when no daily is in progress and none has been completed today.
+
+- **Stats panel now matches addon theme** — replaced WoW's native `UIPanelCloseButton` with a custom `×` close button; dimmed the "Statistics" title word to match Config/Daily panels; replaced `UIPanelScrollFrameTemplate` (WoW silver scroll bar) with a plain scroll frame, mousewheel scrolling, and a thin custom scroll thumb. Tab switches now reset scroll position to the top.
+
+### Files Modified
+- `modules/DailyQuests.lua` — `CheckLoginReminder`
+- `modules/Statistics.lua` — `CreateStatsPanel`, `ShowTab`
+
 ## v1.2.2
 
 ### Meta

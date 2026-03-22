@@ -118,6 +118,8 @@ Key files to reference:
 | `1a2b4de` | After combat, `EquipFishingGear` → `SaveNormalGear` overwrote normalGear with fishing hat/boots | `combatWeapons` stored separately in charDB; combat-end only restores the pole, never calls `EquipFishingGear`/`SaveNormalGear` |
 | `1a2b4de` | Pole disappeared after combat (slot empty) | `EquipItemByName("item:poleID", 16)` when pole already in slot picks it up and leaves empty; guard with `GetItemIDFromLink` comparison before attempting equip |
 | `18e9d40` | `SetOverrideBindingClick` set from `WorldFrame:OnMouseDown` never fired — the current click was already past the input dispatch stage | Moved double-click detection to `GLOBAL_MOUSE_DOWN` event (fires before click dispatch); `SetOverrideBindingClick` now takes effect for the same mouse-down event |
+| (v1.2.3) | Daily quest login reminder silent when no quest picked up yet — `CheckLoginReminder` only fired when quest was already in log | Added else-branch: if no quest in log and none completed today, print reminder to visit Old Man Barlo |
+| (v1.2.3) | Stats panel out of theme: `UIPanelCloseButton` template, plain white title word, WoW native scroll bar | Replaced with custom `×` close button; dimmed title; plain `ScrollFrame` + mousewheel + thin custom scroll thumb |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 
