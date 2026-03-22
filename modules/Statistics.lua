@@ -904,16 +904,21 @@ function Stats:CreateStatsPanel()
     -- Title — plain text, no filled bar (matches main panel)
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -10)
-    title:SetText("|cFF47BEF5FishingKit|r  Statistics")
+    title:SetText("|cFF47BEF5FishingKit|r  |cFF66666BStatistics|r")
     frame.title = title
 
-    -- Close button
-    local closeBtn = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+    -- Close button — custom × text (matches Config/Daily panels)
+    local closeBtn = CreateFrame("Button", nil, frame)
     closeBtn:SetSize(20, 20)
-    closeBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 2, 2)
-    closeBtn:SetScript("OnClick", function()
-        frame:Hide()
-    end)
+    closeBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -6, -8)
+    local closeX = closeBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    closeX:SetAllPoints(); closeX:SetJustifyH("CENTER")
+    closeX:SetText("|cFF66666B×|r")
+    closeBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+    closeBtn:GetHighlightTexture():SetBlendMode("ADD")
+    closeBtn:SetScript("OnClick", function() frame:Hide() end)
+    closeBtn:SetScript("OnEnter", function() closeX:SetText("|cFFCCCCCC×|r") end)
+    closeBtn:SetScript("OnLeave", function() closeX:SetText("|cFF66666B×|r") end)
 
     -- Divider under title
     local titleDiv = frame:CreateTexture(nil, "ARTWORK")
@@ -991,15 +996,61 @@ function Stats:CreateStatsPanel()
     content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -10, 8)
     frame.content = content
 
-    -- Create scroll frame for content
-    local scrollFrame = CreateFrame("ScrollFrame", nil, content, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
-    scrollFrame:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", -24, 0)
+    -- Scroll frame — no WoW template, custom scroll bar to match dark theme
+    local scrollFrame = CreateFrame("ScrollFrame", nil, content)
+    scrollFrame:SetPoint("TOPLEFT",     content, "TOPLEFT",  0,   0)
+    scrollFrame:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", -10, 0)
+    scrollFrame:EnableMouseWheel(true)
+    frame.scrollFrame = scrollFrame
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
     scrollChild:SetSize(400, 800)
     scrollFrame:SetScrollChild(scrollChild)
     frame.scrollChild = scrollChild
+
+    -- Thin scroll track (right edge)
+    local scrollTrack = content:CreateTexture(nil, "BACKGROUND")
+    scrollTrack:SetWidth(6)
+    scrollTrack:SetPoint("TOPRIGHT",    content, "TOPRIGHT",    0, 0)
+    scrollTrack:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, 0)
+    scrollTrack:SetColorTexture(D.barBg[1], D.barBg[2], D.barBg[3], 1)
+
+    -- Scroll thumb
+    local scrollThumb = content:CreateTexture(nil, "ARTWORK")
+    scrollThumb:SetWidth(6)
+    scrollThumb:SetColorTexture(D.label[1], D.label[2], D.label[3], 1)
+    scrollThumb:Hide()
+    frame.scrollThumb = scrollThumb
+
+    local function UpdateScrollThumb()
+        local contentH = content:GetHeight()
+        local childH   = scrollChild:GetHeight()
+        if childH <= contentH then
+            scrollThumb:Hide()
+            return
+        end
+        scrollThumb:Show()
+        local thumbH     = math.max(20, contentH * (contentH / childH))
+        local range      = childH - contentH
+        local val        = scrollFrame:GetVerticalScroll()
+        local thumbRange = contentH - thumbH
+        local thumbY     = (range > 0) and ((val / range) * thumbRange) or 0
+        scrollThumb:SetHeight(thumbH)
+        scrollThumb:ClearAllPoints()
+        scrollThumb:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -thumbY)
+    end
+    frame.UpdateScrollThumb = UpdateScrollThumb
+
+    scrollFrame:SetScript("OnMouseWheel", function(self, delta)
+        local cur = self:GetVerticalScroll()
+        local max = self:GetVerticalScrollRange()
+        self:SetVerticalScroll(math.max(0, math.min(max, cur - delta * 20)))
+        UpdateScrollThumb()
+    end)
+
+    scrollFrame:SetScript("OnScrollRangeChanged", function()
+        UpdateScrollThumb()
+    end)
 
     statsPanel.frame = frame
     frame:Hide()
@@ -1020,6 +1071,11 @@ function Stats:ShowTab(tabID)
             tab.accent:SetColorTexture(D.accent[1], D.accent[2], D.accent[3], 0)
             tab.text:SetTextColor(D.label[1], D.label[2], D.label[3])
         end
+    end
+
+    -- Reset scroll position when switching tabs
+    if statsPanel.frame.scrollFrame then
+        statsPanel.frame.scrollFrame:SetVerticalScroll(0)
     end
 
     -- Clear content
