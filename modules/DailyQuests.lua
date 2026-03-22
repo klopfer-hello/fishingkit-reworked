@@ -137,12 +137,22 @@ function DQ:CheckLoginReminder()
 
     local active = self:GetActiveQuest()
     if active then
-        local status = self:GetStatus(active.id)
-        if status == "active" then
-            FK:Print("Daily fishing quest in progress: " ..
-                FK.Colors.highlight .. active.name .. "|r" ..
-                " — need " .. FK.Colors.fish .. active.fish .. "|r" ..
-                " from " .. FK.Colors.info .. active.zone .. "|r", FK.Colors.info)
+        -- Quest in log, not yet turned in
+        FK:Print("Daily fishing quest in progress: " ..
+            FK.Colors.highlight .. active.name .. "|r" ..
+            " — need " .. FK.Colors.fish .. active.fish .. "|r" ..
+            " from " .. FK.Colors.info .. active.zone .. "|r", FK.Colors.info)
+    else
+        -- No quest in log — remind to pick one up if none completed today
+        local anyDone = false
+        for _, q in ipairs(self.QUESTS) do
+            if self:GetStatus(q.id) == "done" then
+                anyDone = true
+                break
+            end
+        end
+        if not anyDone then
+            FK:Print("Daily fishing quest available — visit Old Man Barlo at Silmyr Lake, Terokkar Forest.", FK.Colors.info)
         end
     end
 end
