@@ -67,7 +67,11 @@ end
 
 -- Returns "done", "active" (in quest log, not yet turned in), or "pending"
 function DQ:GetStatus(questID)
-    if IsQuestComplete(questID) then
+    -- GetQuestsCompleted() returns a table of all quests completed today (including turned-in dailies).
+    -- IsQuestComplete() only returns true for objectives-done-but-not-yet-turned-in, so it misses
+    -- quests that have already been handed in this daily period.
+    local completed = GetQuestsCompleted and GetQuestsCompleted()
+    if completed and completed[questID] then
         return "done"
     end
 
