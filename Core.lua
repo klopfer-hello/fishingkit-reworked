@@ -1085,6 +1085,41 @@ eventHandlers.PLAYER_REGEN_DISABLED = function()
     end
 end
 
+-- Attempt to equip poleID into the mainhand after leaving combat.
+-- attempt = { cancelled, count } — shared control table for retry tracking.
+-- Called via C_Timer so it runs outside any combat-lockdown context.
+local function TryRestorePole(poleID, attempt)
+    if attempt.cancelled then return end
+    attempt.count = attempt.count + 1
+
+    if InCombatLockdown() then
+        if attempt.count < 10 then
+            C_Timer.After(1.0, function() TryRestorePole(poleID, attempt) end)
+        else
+            FK:Print("Combat lockdown persisted. Use /fk equip to restore fishing gear.", FK.Colors.warning)
+            FK.State._combatSwapRetry = nil
+        end
+        return
+    end
+
+    -- Guard: if the pole is already in the mainhand, EquipItemByName would
+    -- pick it up and leave the slot empty — skip in that case.
+    local currentMHLink = GetInventoryItemLink("player", SLOT_MAINHAND)
+    local currentMHID = currentMHLink and FK.Equipment:GetItemIDFromLink(currentMHLink)
+    if currentMHID ~= poleID then
+        EquipItemByName("item:" .. poleID, SLOT_MAINHAND)
+    else
+        FK:Debug("Pole restore: pole already in mainhand, skipping")
+    end
+    FK:Print("Fishing pole restored.", FK.Colors.success)
+    FK.State._combatSwapRetry = nil
+
+    -- Rescan so HasFishingPole() reflects reality again
+    C_Timer.After(0.5, function()
+        if FK.Equipment then FK.Equipment:ScanEquipment() end
+    end)
+end
+
 eventHandlers.PLAYER_REGEN_ENABLED = function()
     -- Left combat
     FK.State.inCombat = false
@@ -1110,40 +1145,7 @@ eventHandlers.PLAYER_REGEN_ENABLED = function()
             if poleID then
                 local attempt = { cancelled = false, count = 0 }
                 FK.State._combatSwapRetry = attempt
-
-                local function TryRestorePole()
-                    if attempt.cancelled then return end
-                    attempt.count = attempt.count + 1
-
-                    if InCombatLockdown() then
-                        if attempt.count < 10 then
-                            C_Timer.After(1.0, TryRestorePole)
-                        else
-                            FK:Print("Combat lockdown persisted. Use /fk equip to restore fishing gear.", FK.Colors.warning)
-                            FK.State._combatSwapRetry = nil
-                        end
-                        return
-                    end
-
-                    -- Guard: if the pole is already in slot 16 (weapons never swapped),
-                    -- EquipItemByName would pick it up and leave the slot empty.
-                    local currentMHLink = GetInventoryItemLink("player", SLOT_MAINHAND)
-                    local currentMHID = currentMHLink and FK.Equipment:GetItemIDFromLink(currentMHLink)
-                    if currentMHID == poleID then
-                        FK:Debug("Pole restore: pole already in mainhand, skipping")
-                    else
-                        EquipItemByName("item:" .. poleID, SLOT_MAINHAND)
-                    end
-                    FK:Print("Fishing pole restored.", FK.Colors.success)
-                    FK.State._combatSwapRetry = nil
-
-                    -- Rescan so HasFishingPole() reflects reality again
-                    C_Timer.After(0.5, function()
-                        if FK.Equipment then FK.Equipment:ScanEquipment() end
-                    end)
-                end
-
-                C_Timer.After(0.5, TryRestorePole)
+                C_Timer.After(0.5, function() TryRestorePole(poleID, attempt) end)
             end
         end
     end
