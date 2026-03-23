@@ -5,3 +5,5 @@ ignore:
   - .github
   - .gitignore
   - CLAUDE.md
+  - CHANGELOG.md
+  - README.md
