@@ -78,29 +78,12 @@ local function AddThinBorder(btn, r, g, b, a)
     rgt:SetColorTexture(r, g, b, a)
 end
 
--- Openable containers caught while fishing (clams, crates, etc.)
-local OPENABLE_ITEMS = {
-    -- Clams
-    [5523]  = "Small Barnacled Clam",
-    [5524]  = "Thick-Shelled Clam",
-    [7973]  = "Big-mouth Clam",
-    [15874] = "Soft-shelled Clam",
-    [24476] = "Jaggal Clam",
-    -- TBC Clams
-    [33567] = "Broiled Bloodfin",  -- Not a clam but openable
-    -- Crates and containers
-    [6352]  = "Waterlogged Crate",
-    [6353]  = "Small Barnacled Clam",
-    [13874] = "Heavy Crate",
-    [13875] = "Mithril Bound Trunk",
-    [21113] = "Watertight Trunk",
-    [27481] = "Heavy Supply Crate",
-    [27482] = "Inscribed Scrollcase",
-    [27511] = "Inscribed Scrollcase",
-    [27513] = "Curious Crate",
-}
-
 -- ============================================================================
+-- FRAME CREATION
+-- The sections below build all UI frames. They run once, at Initialize().
+-- After Initialize() returns, execution moves to RUNTIME sections.
+-- ============================================================================
+
 -- Initialization
 -- ============================================================================
 
@@ -897,6 +880,11 @@ function UI:CreateFooter()
 end
 
 -- ============================================================================
+-- RUNTIME — UPDATE
+-- The sections below run repeatedly during play (OnUpdate, button presses,
+-- event callbacks). All frames are assumed to exist at this point.
+-- ============================================================================
+
 -- Update Functions
 -- ============================================================================
 
@@ -1333,6 +1321,28 @@ function UI:UpdateLureButton()
     end
 end
 
+-- Items caught while fishing that can be opened for additional loot
+local OPENABLE_ITEMS = {
+    -- Clams
+    [5523]  = "Small Barnacled Clam",
+    [5524]  = "Thick-Shelled Clam",
+    [7973]  = "Big-mouth Clam",
+    [15874] = "Soft-shelled Clam",
+    [24476] = "Jaggal Clam",
+    -- TBC Clams
+    [33567] = "Broiled Bloodfin",  -- Not a clam but openable
+    -- Crates and containers
+    [6352]  = "Waterlogged Crate",
+    [6353]  = "Small Barnacled Clam",
+    [13874] = "Heavy Crate",
+    [13875] = "Mithril Bound Trunk",
+    [21113] = "Watertight Trunk",
+    [27481] = "Heavy Supply Crate",
+    [27482] = "Inscribed Scrollcase",
+    [27511] = "Inscribed Scrollcase",
+    [27513] = "Curious Crate",
+}
+
 -- Find openable items (clams, crates) in bags
 function UI:GetOpenableItems()
     local items = {}
@@ -1412,9 +1422,8 @@ function UI:UpdateClamButton()
     end
 end
 
--- ============================================================================
 -- Route Button Update
--- ============================================================================
+-- ----------------------------------------------------------------------------
 
 function UI:UpdateRouteButton()
     local frame = uiState.mainFrame
@@ -1433,7 +1442,7 @@ function UI:UpdateRouteButton()
 end
 
 -- ============================================================================
--- Event Handlers
+-- RUNTIME — EVENT CALLBACKS
 -- ============================================================================
 
 function UI:OnFishingStart()
@@ -1513,8 +1522,11 @@ function UI:OnEquipmentChanged()
 end
 
 -- ============================================================================
--- Visibility
+-- VISIBILITY & POSITION
 -- ============================================================================
+
+-- Visibility
+-- ----------------------------------------------------------------------------
 
 function UI:Show()
     if uiState.mainFrame then
@@ -1549,9 +1561,8 @@ function UI:IsVisible()
     return uiState.visible
 end
 
--- ============================================================================
 -- Collapse / Expand
--- ============================================================================
+-- ----------------------------------------------------------------------------
 
 function UI:ToggleCollapse()
     FK.db.settings.collapsed = not FK.db.settings.collapsed
@@ -1591,9 +1602,8 @@ function UI:ApplyCollapsedState()
     end
 end
 
--- ============================================================================
 -- Position Management
--- ============================================================================
+-- ----------------------------------------------------------------------------
 
 function UI:SavePosition()
     if not uiState.mainFrame then return end
