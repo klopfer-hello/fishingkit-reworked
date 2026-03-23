@@ -1530,6 +1530,9 @@ function UI:Hide()
         uiState.mainFrame:Hide()
         uiState.visible = false
         FK.db.settings.showUI = false
+        if FK.ZoneFish and FK.ZoneFish:IsShown() then
+            FK.ZoneFish:Hide()
+        end
     end
 end
 
