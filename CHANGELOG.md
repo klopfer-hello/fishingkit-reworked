@@ -1,5 +1,23 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.2.4
+
+### Bug Fixes
+
+- **Daily quest reminder fires even when quest was already turned in** — `IsQuestComplete()` only returns true while quest objectives are done but not yet handed in; it returns nil for already-turned-in quests. Replaced with `GetQuestsCompleted()[questID]` which correctly reflects daily quests completed (turned in) today until the next daily reset.
+
+- **Zone Fish (%) panel stayed visible after closing main window** — `UI:Hide()` hid the main frame but not the ZoneFish panel anchored below it. Added explicit `FK.ZoneFish:Hide()` call in `UI:Hide()`. Also added missing `ZF:Hide()` and `ZF:Show()` methods to ZoneFish.lua (the missing method caused a silent Lua error).
+
+### Performance
+
+- **AH price scan is now much faster on repeat visits** — Each scan result is now timestamped in `ahPriceTimes`. Items priced within the last 4 hours are skipped on subsequent visits. The first daily scan still queries everything; follow-up visits to the AH skip already-fresh prices and complete almost instantly.
+
+### Files Modified
+- `modules/DailyQuests.lua` — `GetStatus`
+- `modules/UI.lua` — `UI:Hide`
+- `modules/ZoneFish.lua` — added `ZF:Hide`, `ZF:Show`; refactored `ZF:Toggle`
+- `Core.lua` — `StartAHScan`, `ReadAHResults`, default db schema (`ahPriceTimes`)
+
 ## v1.2.3
 
 ### Bug Fixes

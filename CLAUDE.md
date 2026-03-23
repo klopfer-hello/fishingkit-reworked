@@ -120,6 +120,8 @@ Key files to reference:
 | `18e9d40` | `SetOverrideBindingClick` set from `WorldFrame:OnMouseDown` never fired — the current click was already past the input dispatch stage | Moved double-click detection to `GLOBAL_MOUSE_DOWN` event (fires before click dispatch); `SetOverrideBindingClick` now takes effect for the same mouse-down event |
 | (v1.2.3) | Daily quest login reminder silent when no quest picked up yet — `CheckLoginReminder` only fired when quest was already in log | Added else-branch: if no quest in log and none completed today, print reminder to visit Old Man Barlo |
 | (v1.2.3) | Stats panel out of theme: `UIPanelCloseButton` template, plain white title word, WoW native scroll bar | Replaced with custom `×` close button; dimmed title; plain `ScrollFrame` + mousewheel + thin custom scroll thumb |
+| (v1.2.4) | Daily quest reminder fires even when quest was already turned in — `IsQuestComplete()` returns nil for turned-in quests | Replaced with `GetQuestsCompleted()[questID]` which tracks today's completed dailies |
+| (v1.2.4) | Zone Fish (%) panel stays visible after closing main window — `UI:Hide()` never hid it; `ZF:Hide()` method didn't exist (silent Lua error) | Added `ZF:Hide()` + `ZF:Show()` to ZoneFish.lua; `UI:Hide()` calls `FK.ZoneFish:Hide()` |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 
@@ -137,6 +139,7 @@ Key files to reference:
 - **`UseContainerItem(bag, slot)`** — the legacy global does not exist on TBC Classic Anniversary; it is shimmed in Core.lua to `C_Container.UseContainerItem`. Works outside combat for opening containers.
 - **`GLOBAL_MOUSE_DOWN`** — WoW event available in TBC Classic Anniversary. Fires with `arg1 = "RightButton"` (etc.) before click events are dispatched to frames. Setting `SetOverrideBindingClick` inside this handler takes effect for the current mouse-down event. `WorldFrame:HookScript("OnMouseDown")` fires too late — the input has already been dispatched.
 - **`SecureActionButtonTemplate` + `type=macro` + `macrotext`** — use `/use bag slot\n/use 16` macrotext to apply a lure and target the fishing pole slot in one secure click. The `target-slot` attribute for `type=item` is not required in TBC Classic when using macrotext instead.
+- **`GetQuestsCompleted()`** — available in TBC Classic 2.5.5. Returns a table keyed by questID where value is `true` for every quest completed (including daily quests turned in today). Entries for daily quests are cleared on the daily reset. Use this — not `IsQuestComplete(id)` — to detect whether a daily has been turned in; `IsQuestComplete` only returns `1` while quest objectives are done but the quest has not yet been handed in.
 
 ## Coding Conventions
 
