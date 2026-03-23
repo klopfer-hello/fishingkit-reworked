@@ -27,6 +27,9 @@ local uiState = {
     lastCatch = nil,
 }
 
+-- Inventory slot IDs
+local SLOT_MAINHAND = 16
+
 -- UI Constants
 local FRAME_WIDTH           = 290
 local FRAME_HEIGHT          = 352   -- expanded
@@ -1128,7 +1131,7 @@ function UI:UpdatePanel()
     -- Update bag space display
     if frame.footerBags then
         local totalSlots, freeSlots = 0, 0
-        for bag = 0, 4 do
+        for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
             totalSlots = totalSlots + GetContainerNumSlots(bag)
             freeSlots = freeSlots + GetContainerNumFreeSlots(bag)
         end
@@ -1311,7 +1314,7 @@ function UI:UpdateLureButton()
     if frame.equipBtn then
         if FK.Equipment:HasFishingPole() then
             -- Show the actual equipped pole icon if possible
-            local poleLink = GetInventoryItemLink("player", 16)
+            local poleLink = GetInventoryItemLink("player", SLOT_MAINHAND)
             if poleLink then
                 local _, _, _, _, _, _, _, _, _, poleIcon = GetItemInfo(poleLink)
                 if poleIcon then

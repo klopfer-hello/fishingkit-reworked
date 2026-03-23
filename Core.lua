@@ -96,6 +96,14 @@ end
 FK.FishingSpellID = 7620
 FK.FishingSpellName = "Fishing"
 
+-- Inventory slot IDs (mirrors Equipment.lua locals; defined here for Core use)
+local SLOT_MAINHAND = 16
+
+-- Post-loot timer delays (seconds)
+local LOOT_RELEASE_DELAY   = 0.3  -- catch-and-release bag scan
+local LOOT_CONTAINER_DELAY = 0.5  -- auto-open containers
+local LOOT_LURE_DELAY      = 0.6  -- lure reapply check
+
 -- Default saved variables structure
 local defaultDB = {
     -- Global settings
@@ -546,7 +554,7 @@ local function UpdateLureStatus()
 
     if hasMainHandEnchant then
         -- Check if the weapon is a fishing pole
-        local mainHandLink = GetInventoryItemLink("player", 16) -- Main hand slot
+        local mainHandLink = GetInventoryItemLink("player", SLOT_MAINHAND)
         if mainHandLink then
             local _, _, _, _, _, itemType, itemSubType = GetItemInfo(mainHandLink)
             if itemSubType and (itemSubType == "Fishing Poles" or itemSubType == "Fishing Pole") then
@@ -954,7 +962,7 @@ local function ProcessReleaseList()
     if not FK.chardb or not FK.chardb.releaseList then return end
     if not next(FK.chardb.releaseList) then return end
 
-    for bag = 0, 4 do
+    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
         local numSlots = GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemLink = GetContainerItemLink(bag, slot)
@@ -1001,15 +1009,15 @@ eventHandlers.LOOT_CLOSED = function()
         end
 
         -- Process catch & release auto-delete
-        C_Timer.After(0.3, ProcessReleaseList)
+        C_Timer.After(LOOT_RELEASE_DELAY, ProcessReleaseList)
 
         -- Auto-open fishing containers (crates, scroll cases) if enabled
         if FK.db and FK.db.settings.autoOpenContainers then
-            C_Timer.After(0.5, function() FK.Events:Fire("AUTO_OPEN_CONTAINERS") end)
+            C_Timer.After(LOOT_CONTAINER_DELAY, function() FK.Events:Fire("AUTO_OPEN_CONTAINERS") end)
         end
 
         -- Auto-reapply lure if enabled and lure is missing/expired
-        C_Timer.After(0.6, function() FK.Events:Fire("LURE_CHECK") end)
+        C_Timer.After(LOOT_LURE_DELAY, function() FK.Events:Fire("LURE_CHECK") end)
     end
 end
 
@@ -1071,7 +1079,7 @@ eventHandlers.PLAYER_REGEN_DISABLED = function()
         if FK.Equipment and FK.Equipment:HasFishingPole() then
             -- Snapshot the fishing pole now so PLAYER_REGEN_ENABLED can restore just
             -- the pole without touching head/hands/feet or calling SaveNormalGear.
-            FK.State.preCombatPole = GetInventoryItemLink("player", 16)  -- SLOT_MAINHAND
+            FK.State.preCombatPole = GetInventoryItemLink("player", SLOT_MAINHAND)
             FK.State.combatSwapQueued = true
             local swapped = FK.Equipment:EquipCombatWeapons()
             if swapped then
@@ -1125,12 +1133,12 @@ eventHandlers.PLAYER_REGEN_ENABLED = function()
 
                     -- Guard: if the pole is already in slot 16 (weapons never swapped),
                     -- EquipItemByName would pick it up and leave the slot empty.
-                    local currentMHLink = GetInventoryItemLink("player", 16)
+                    local currentMHLink = GetInventoryItemLink("player", SLOT_MAINHAND)
                     local currentMHID = currentMHLink and FK.Equipment:GetItemIDFromLink(currentMHLink)
                     if currentMHID == poleID then
-                        FK:Debug("Pole restore: pole already in slot 16, skipping")
+                        FK:Debug("Pole restore: pole already in mainhand, skipping")
                     else
-                        EquipItemByName("item:" .. poleID, 16)  -- SLOT_MAINHAND
+                        EquipItemByName("item:" .. poleID, SLOT_MAINHAND)
                     end
                     FK:Print("Fishing pole restored.", FK.Colors.success)
                     FK.State._combatSwapRetry = nil
@@ -1570,7 +1578,7 @@ end
 
 function FK:GetTaskyfishCount()
     local count = 0
-    for bag = 0, 4 do
+    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
         local numSlots = GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemLink = GetContainerItemLink(bag, slot)

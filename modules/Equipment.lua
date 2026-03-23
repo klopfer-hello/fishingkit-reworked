@@ -541,7 +541,7 @@ function Equip:EquipItemByLink(itemLink, slot)
     ClearCursor()
 
     -- Find the item in bags
-    for bag = 0, 4 do
+    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
         local numSlots = GetContainerNumSlots(bag)
         for bagSlot = 1, numSlots do
             local bagItemLink = GetContainerItemLink(bag, bagSlot)
@@ -586,7 +586,7 @@ function Equip:GetBestAvailableLure()
     -- Search bags for lures, aggregate counts across all stacks per lure type
     local lureTotals = {}  -- [itemID] = { total count, first bag, first slot, icon }
 
-    for bag = 0, 4 do
+    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
         local numSlots = GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local texture, itemCount = GetContainerItemInfo(bag, slot)
@@ -686,12 +686,12 @@ function Equip:TryAutoReapplyLure()
     -- Step 1: activate the lure (puts enchant cursor on screen)
     UseContainerItem(bestLure.bag, bestLure.slot)
 
-    -- Step 2: apply the cursor to the fishing pole (mainhand = slot 16)
+    -- Step 2: apply the cursor to the fishing pole (mainhand slot).
     -- Mirrors the secure Lure button macro: "/use bag slot\n/use 16"
     -- Small delay so the enchant cursor is ready before we target the slot.
     C_Timer.After(0.1, function()
         if not InCombatLockdown() then
-            UseInventoryItem(16)
+            UseInventoryItem(SLOT_MAINHAND)
         end
     end)
 
@@ -816,7 +816,7 @@ end
 function Equip:GetFishingPolesInBags()
     local poles = {}
 
-    for bag = 0, 4 do
+    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
         local numSlots = GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemLink = GetContainerItemLink(bag, slot)
@@ -862,7 +862,7 @@ end
 function Equip:GetLuresInBags()
     local lures = {}
 
-    for bag = 0, 4 do
+    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
         local numSlots = GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local _, itemCount = GetContainerItemInfo(bag, slot)
