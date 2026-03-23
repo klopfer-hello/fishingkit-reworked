@@ -161,9 +161,28 @@ This project follows **Semantic Versioning** (`MAJOR.MINOR.PATCH`):
 
 Current series started at `1.0.x` for initial development; proper semver applied from `v1.1.0` onward.
 
+### Beta Releases
+
+Beta releases use the semver pre-release suffix: `MAJOR.MINOR.PATCH-beta.N` where `N` starts at 1 and increments for each beta of the same target version.
+
+- The target version (`MAJOR.MINOR.PATCH`) reflects what the final release will be.
+- The git tag **must** contain the word `beta` — e.g. `v1.3.0-beta.1`.
+- `FishingKit.toc` `## Version:` is set to the full pre-release string (e.g. `1.3.0-beta.1`) so the in-game tooltip shows it is a beta.
+- Beta releases get a `CHANGELOG.md` entry at the top using the full version string (e.g. `## v1.3.0-beta.1`).
+- When the beta graduates to stable, drop the suffix: bump `## Version:` to `1.3.0`, retag as `v1.3.0`, and replace the beta `CHANGELOG.md` entry with the final one.
+
+Examples:
+| Scenario | Tag |
+|---|---|
+| First beta for next patch | `v1.2.5-beta.1` |
+| Second iteration of same beta | `v1.2.5-beta.2` |
+| First beta for next minor | `v1.3.0-beta.1` |
+
 ## Release Process
 
-Before each release, update **all four** of the following in a single commit, then tag:
+### Stable release
+
+Before each stable release, update **all four** of the following in a single commit, then tag:
 
 1. **`CLAUDE.md`** — update File Structure, State Machine, Bugs Fixed, and API notes to reflect changes in this release
 2. **`CHANGELOG.md`** — add a new `## vX.Y.Z` section at the top (below the title) documenting new features, fixes, and files modified
@@ -175,4 +194,18 @@ Then commit and tag:
 git add CLAUDE.md CHANGELOG.md README.md FishingKit.toc
 git commit -m "chore: release vX.Y.Z"
 git tag -a vX.Y.Z -m "vX.Y.Z"
+```
+
+### Beta release
+
+Beta releases only require `CHANGELOG.md` and `FishingKit.toc` — no need to update `README.md` or `CLAUDE.md` until the stable release:
+
+1. **`CHANGELOG.md`** — add a new `## vX.Y.Z-beta.N` section at the top
+2. **`FishingKit.toc`** — set `## Version:` to `X.Y.Z-beta.N`
+
+Then commit and tag:
+```
+git add CHANGELOG.md FishingKit.toc
+git commit -m "chore: release vX.Y.Z-beta.N"
+git tag -a vX.Y.Z-beta.N -m "vX.Y.Z-beta.N"
 ```
