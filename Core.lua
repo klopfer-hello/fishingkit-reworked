@@ -150,6 +150,8 @@ local defaultDB = {
 
     -- Cached AH prices (account-wide, keyed by itemID, value in copper)
     ahPrices = {},
+    -- Unix timestamps of last successful scan per itemID (used to skip stale-safe items)
+    ahPriceTimes = {},
 
     -- Global statistics (all characters)
     globalStats = {
@@ -300,11 +302,12 @@ function FK:CreateBackup()
     -- Exclude large re-buildable arrays so the backup doesn't double SavedVariables size.
     -- Backed up: settings, globalStats counters/fishCaught, gear sets, goals, releaseList.
     -- NOT backed up: lootHistory (500 items), sessions (50), biteTimings, poolLocations,
-    --                ahPrices — all can be rebuilt by playing or rescanning.
+    --                ahPrices/ahPriceTimes — all can be rebuilt by playing or rescanning.
     local dbCopy = FK:TableCopyExcluding(FK.db, {
         backup        = true,
         poolLocations = true,
         ahPrices      = true,
+        ahPriceTimes  = true,
     })
     local charCopy = FK:TableCopyExcluding(FK.chardb, {
         backup       = true,
@@ -1483,10 +1486,15 @@ function FK:StartAHScan()
         return
     end
     if not FK.db.ahPrices then FK.db.ahPrices = {} end
+    if not FK.db.ahPriceTimes then FK.db.ahPriceTimes = {} end
     if FK.ahScan.active then
         FK:Debug("AH scan: already scanning, ignoring")
         return
     end
+
+    -- Prices are considered fresh for 4 hours; skip items scanned more recently.
+    local STALE_SECS = 4 * 3600
+    local now = time()
 
     -- Build list of fish to scan from catch history + database
     local fishToScan = {}
@@ -1515,18 +1523,24 @@ function FK:StartAHScan()
     end
     FK:Debug("AH scan: " .. fromDatabase .. " additional fish from database")
 
-    -- Build ordered queue from all scannable fish
+    -- Build ordered queue, skipping items with a fresh cached price
     FK.ahScan.queue = {}
+    local skipped = 0
     for itemID, fishName in pairs(fishToScan) do
-        table.insert(FK.ahScan.queue, { itemID = itemID, fishName = fishName })
+        local lastScan = FK.db.ahPriceTimes[itemID]
+        if lastScan and (now - lastScan) < STALE_SECS then
+            skipped = skipped + 1
+        else
+            table.insert(FK.ahScan.queue, { itemID = itemID, fishName = fishName })
+        end
     end
     -- Sort by name for consistent ordering
     table.sort(FK.ahScan.queue, function(a, b) return a.fishName < b.fishName end)
 
-    FK:Debug("AH scan: " .. #FK.ahScan.queue .. " fish queued for scanning")
+    FK:Debug("AH scan: " .. #FK.ahScan.queue .. " fish queued, " .. skipped .. " skipped (fresh price)")
 
     if #FK.ahScan.queue == 0 then
-        FK:Debug("AH scan: nothing to scan, aborting")
+        FK:Print("All AH prices are up to date (scanned within 4 hours).", FK.Colors.success)
         return
     end
 
@@ -1535,7 +1549,8 @@ function FK:StartAHScan()
     FK.ahScan.results = { found = 0, noListings = 0, ahClosed = 0, throttled = 0 }
     FK.ahScan.waitingForResults = false
 
-    FK:Print("Scanning AH prices for " .. #FK.ahScan.queue .. " fish items...", FK.Colors.info)
+    local skipMsg = skipped > 0 and " (" .. skipped .. " fresh, skipped)" or ""
+    FK:Print("Scanning AH prices for " .. #FK.ahScan.queue .. " fish items..." .. skipMsg, FK.Colors.info)
     if FK.ahTab.statusText then
         FK.ahTab.statusText:SetText("Scanning " .. #FK.ahScan.queue .. " fish...")
     end
@@ -1668,6 +1683,7 @@ function FK:ReadAHResults()
         end
     end
 
+    FK.db.ahPriceTimes[itemID] = time()  -- record scan time regardless of result
     if lowestBuyout then
         FK.db.ahPrices[itemID] = lowestBuyout
         FK.ahScan.results.found = FK.ahScan.results.found + 1
