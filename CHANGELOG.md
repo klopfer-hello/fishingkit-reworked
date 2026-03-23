@@ -1,5 +1,39 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.0-beta.1
+
+### Internal Refactoring
+
+- **FK.Events pub/sub event bus** — Core.lua now fires named events (`FISHING_STARTED`, `BOBBER_LANDED`, `FISHING_BITE`, `FISHING_COMPLETE`, `ZONE_CHANGED`, etc.) instead of calling module methods directly. All modules subscribe in their `Initialize()` functions, decoupling the event source from the listeners.
+
+- **State getter functions** — Added `FK:GetZone()`, `FK:GetSubZone()`, `FK:IsFishing()`, `FK:GetCastStartTime()`, `FK:GetFishingSkill()`, and `FK:HasLure()`. All modules now read state through these getters instead of accessing `FK.State.*` fields directly.
+
+- **Named constants** — Magic numbers for loot delays and inventory slot numbers replaced with named locals (`LOOT_RELEASE_DELAY`, `LOOT_CONTAINER_DELAY`, `LOOT_LURE_DELAY`, `SLOT_MAINHAND`).
+
+- **`FK:ForEachBagSlot()` helper** — Bag iteration loops across Core.lua, Equipment.lua, and UI.lua consolidated into a single shared iterator.
+
+- **Spell event parameter names** — `UNIT_SPELLCAST_*` handlers renamed from `arg2..arg5` to `spellName, rank, lineID, spellID`.
+
+- **`TryRestorePole` extracted** — Combat pole-restore retry logic extracted from the `PLAYER_REGEN_ENABLED` handler into a named module-level function.
+
+- **UI.lua section headers** — Frame creation and runtime sections labeled with clear boundary comments.
+
+- **`StatsPanel.lua` extracted** — ~1000 lines of statistics window UI (tabs, scroll frame, five populate functions) moved from `Statistics.lua` into a new `modules/StatsPanel.lua`, keeping `Statistics.lua` focused on data and session logic.
+
+### Files Modified
+- `Core.lua` — FK.Events bus, state getters, named constants, ForEachBagSlot, TryRestorePole, bag loop updates
+- `modules/Alerts.lua` — subscribe via FK.Events, state getter replacements
+- `modules/Statistics.lua` — subscribe via FK.Events, state getter replacements, panel code extracted
+- `modules/StatsPanel.lua` — **new file**, extracted from Statistics.lua
+- `modules/Equipment.lua` — subscribe via FK.Events, state getter replacements, bag loop updates
+- `modules/UI.lua` — subscribe via FK.Events, state getter replacements, bag loop updates, section headers
+- `modules/Navigation.lua` — subscribe via FK.Events
+- `modules/Pools.lua` — subscribe via FK.Events, state getter replacements
+- `modules/DailyQuests.lua` — subscribe via FK.Events
+- `modules/ZoneFish.lua` — state getter replacement
+- `FishingKit.toc` — added `modules\StatsPanel.lua`
+- `.pkgmeta` — exclude CHANGELOG.md and README.md from packaged release
+
 ## v1.2.4
 
 ### Bug Fixes
