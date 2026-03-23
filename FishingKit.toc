@@ -34,6 +34,7 @@ modules\PoolData.lua
 modules\Pools.lua
 
 # Interface
+modules\AuctionHouse.lua
 modules\Config.lua
 modules\UI.lua
 modules\ZoneFish.lua
