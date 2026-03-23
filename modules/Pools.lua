@@ -437,7 +437,7 @@ end
 function Pools:OnPoolDetected(poolName, x, y)
     if not poolName then return end
 
-    local zone = FK.State.currentZone
+    local zone = FK:GetZone()
     local timestamp = GetTime()
 
     local key = zone .. "_" .. (x or 0) .. "_" .. (y or 0)
@@ -467,7 +467,7 @@ function Pools:OnPoolDetected(poolName, x, y)
 end
 
 function Pools:OnPoolFished(poolName)
-    local zone = FK.State.currentZone
+    local zone = FK:GetZone()
 
     for key, pool in pairs(poolState.nearbyPools) do
         if pool.name == poolName and pool.zone == zone then
@@ -981,12 +981,12 @@ function Pools:GetPoolInfo(poolName)
 end
 
 function Pools:GetPoolsForCurrentZone()
-    local zone = FK.State.currentZone
+    local zone = FK:GetZone()
     return FK.Database:GetPoolsForZone(zone)
 end
 
 function Pools:ShowNearbyPools()
-    local zone = FK.State.currentZone
+    local zone = FK:GetZone()
 
     FK:Print("=== Fishing Pools in " .. zone .. " ===", FK.Colors.highlight)
 
@@ -1101,7 +1101,7 @@ end
 
 function Pools:GetBestPoolForSkill()
     local skill = FK.Equipment:GetEffectiveSkill()
-    local zone = FK.State.currentZone
+    local zone = FK:GetZone()
 
     local zonePools = self:GetPoolsForCurrentZone()
 

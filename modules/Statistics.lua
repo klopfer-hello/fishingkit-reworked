@@ -90,7 +90,7 @@ function Stats:OnCastStart()
     end
 
     -- Track zone
-    local zone = FK.State.currentZone
+    local zone = FK:GetZone()
     if zone and zone ~= "" then
         if not sessionData.zones[zone] then
             sessionData.zones[zone] = { casts = 0, catches = 0 }
@@ -126,7 +126,7 @@ function Stats:UndoCastCount()
         FK.db.globalStats.totalCasts = math.max(0, (FK.db.globalStats.totalCasts or 0) - 1)
     end
 
-    local zone = FK.State.currentZone
+    local zone = FK:GetZone()
     if zone and zone ~= "" then
         if sessionData.zones[zone] then
             sessionData.zones[zone].casts = math.max(0, sessionData.zones[zone].casts - 1)
@@ -265,7 +265,7 @@ function Stats:RecordCatch(lootData)
     local itemName = lootData.name
     local quantity = lootData.quantity or 1
     local quality = lootData.quality or 0
-    local zone = FK.State.currentZone or "Unknown"
+    local zone = FK:GetZone() or "Unknown"
 
     local isJunk = FK.Database:IsJunk(itemID)
     local isSpecial = FK.Database:IsSpecial(itemID)
@@ -677,14 +677,14 @@ end
 -- ============================================================================
 
 function Stats:RecordBiteTime()
-    if not FK.State.castStartTime then return end
+    if not FK:GetCastStartTime() then return end
     if not FK.chardb then return end
 
-    local elapsed = GetTime() - FK.State.castStartTime
+    local elapsed = GetTime() - FK:GetCastStartTime()
     -- Only record reasonable bite times (between 2-21 seconds)
     if elapsed < 2 or elapsed > 21 then return end
 
-    local zone = FK.State.currentZone or "Unknown"
+    local zone = FK:GetZone() or "Unknown"
     if not FK.chardb.biteTimings then
         FK.chardb.biteTimings = {}
     end
@@ -708,7 +708,7 @@ end
 function Stats:GetBiteConfidence(zone)
     if not FK.chardb or not FK.chardb.biteTimings then return nil end
 
-    zone = zone or FK.State.currentZone or "Unknown"
+    zone = zone or FK:GetZone() or "Unknown"
     local timings = FK.chardb.biteTimings[zone]
     if not timings or #timings < 5 then return nil end
 
@@ -1492,7 +1492,7 @@ end
 
 function Stats:PopulateZoneFishTab(parent)
     local yOffset = -10
-    local zone = FK.State.currentZone or "Unknown"
+    local zone = FK:GetZone() or "Unknown"
 
     local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     header:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, yOffset)
@@ -1543,7 +1543,7 @@ function Stats:PopulateZoneFishTab(parent)
             return a.minSkill < b.minSkill
         end)
 
-        local skill = FK.State.fishingSkill or 0
+        local skill = FK:GetFishingSkill()
         local qualityColors = {
             [0] = {0.6, 0.6, 0.6},
             [1] = {1, 1, 1},

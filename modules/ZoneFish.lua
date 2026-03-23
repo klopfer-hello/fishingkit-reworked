@@ -154,7 +154,7 @@ end
 -- ============================================================================
 
 local function GetZoneFishList()
-    local zone = FK.State and FK.State.currentZone
+    local zone = FK:GetZone()
     if not zone or zone == "" then return nil, zone end
 
     local zs = FK.chardb

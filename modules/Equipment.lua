@@ -705,14 +705,14 @@ function Equip:TryAutoReapplyLure()
 end
 
 function Equip:SuggestLure()
-    local zone = FK.State.currentZone
+    local zone = FK:GetZone()
     local zoneData = FK.Database:GetZoneInfo(zone)
 
     if not zoneData then
         return nil, "Unknown zone"
     end
 
-    local currentSkill = FK.State.fishingSkill + equipState.totalBonus
+    local currentSkill = FK:GetFishingSkill() + equipState.totalBonus
     local noGetaway = zoneData.noGetaway or 1
 
     if currentSkill >= noGetaway then
@@ -793,7 +793,7 @@ function Equip:GetLureInfo()
 end
 
 function Equip:GetEffectiveSkill()
-    local baseSkill = FK.State.fishingSkill
+    local baseSkill = FK:GetFishingSkill()
     local bonus = self:GetTotalBonus()
     return baseSkill + bonus
 end

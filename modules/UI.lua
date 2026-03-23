@@ -1180,18 +1180,18 @@ function UI:UpdateCastBar()
     end
 
     -- Self-heal: if WoW says we're fishing but stale events corrupted our state, fix it
-    if apiSaysFishing and not FK.State.isFishing then
+    if apiSaysFishing and not FK:IsFishing() then
         FK.State.isFishing = true
-        if not FK.State.castStartTime then
+        if not FK:GetCastStartTime() then
             FK.State.castStartTime = GetTime()
         end
     end
 
-    local isFishing = apiSaysFishing or FK.State.isFishing
+    local isFishing = apiSaysFishing or FK:IsFishing()
     local barWidth = frame.castBarBg:GetWidth() - 2
 
     if isFishing then
-        local elapsed = GetTime() - (FK.State.castStartTime or GetTime())
+        local elapsed = GetTime() - (FK:GetCastStartTime() or GetTime())
         local maxTime = 21  -- Fishing channel is ~21 seconds
 
         -- Show appropriate status based on elapsed time
@@ -1915,7 +1915,7 @@ local function OnTooltipSetItem(tooltip)
 
     -- Show min skill
     if fishInfo.minSkill then
-        local skill = FK.State.fishingSkill or 0
+        local skill = FK:GetFishingSkill()
         local color = skill >= fishInfo.minSkill and "|cFF00FF00" or "|cFFFF0000"
         tooltip:AddDoubleLine("Min Skill:", color .. fishInfo.minSkill .. "|r", 0.7, 0.7, 0.7)
     end

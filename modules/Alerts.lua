@@ -387,7 +387,7 @@ end
 
 function Alerts:CheckMissingLure()
     if not FK.db.settings.missingLureWarning then return end
-    if not FK.State.isFishing then return end
+    if not FK:IsFishing() then return end
     if not FK.Equipment or not FK.Equipment:HasFishingPole() then return end
 
     local hasLure = FK:HasLure()
@@ -443,7 +443,7 @@ function Alerts:CheckCycleFishWindows()
 
     if cycleFishState.lastWindowCheck and cycleFishState.lastWindowCheck ~= currentWindow then
         -- Window just changed — check if current zone has time-window fish
-        local zone = FK.State.currentZone or ""
+        local zone = FK:GetZone() or ""
         if zone ~= "" and FK.Database then
             local fishList = FK.Database:GetFishForZone(zone)
             for _, fish in ipairs(fishList) do

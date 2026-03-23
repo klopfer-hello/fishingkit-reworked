@@ -439,6 +439,34 @@ function FK:IsFishAvailable(itemID)
 end
 
 -- ============================================================================
+-- State Accessors (modules read shared state via getters, not direct FK.State fields)
+-- ============================================================================
+
+function FK:GetZone()
+    return FK.State.currentZone
+end
+
+function FK:GetSubZone()
+    return FK.State.currentSubZone
+end
+
+function FK:IsFishing()
+    return FK.State.isFishing == true
+end
+
+function FK:GetCastStartTime()
+    return FK.State.castStartTime
+end
+
+function FK:GetFishingSkill()
+    return FK.State.fishingSkill or 0
+end
+
+function FK:HasLure()
+    return FK.State.hasLure == true
+end
+
+-- ============================================================================
 -- Initialization
 -- ============================================================================
 
