@@ -73,6 +73,25 @@ FK.Colors = {
     legendary = "|cFFFF8000",   -- Legendary orange
 }
 
+-- ============================================================================
+-- Event Bus (pub/sub)
+-- Modules subscribe in Initialize(); Core fires without knowing who listens.
+-- ============================================================================
+
+FK.Events = {}
+local busListeners = {}
+
+function FK.Events:On(event, fn)
+    if not busListeners[event] then busListeners[event] = {} end
+    table.insert(busListeners[event], fn)
+end
+
+function FK.Events:Fire(event, ...)
+    if busListeners[event] then
+        for _, fn in ipairs(busListeners[event]) do fn(...) end
+    end
+end
+
 -- Fishing spell IDs and names
 FK.FishingSpellID = 7620
 FK.FishingSpellName = "Fishing"
@@ -667,18 +686,11 @@ eventHandlers.PLAYER_ENTERING_WORLD = function()
     end
 
     -- Remind player of active daily fishing quest (delayed so UI is ready)
-    C_Timer.After(3, function()
-        if FK.DailyQuests and FK.DailyQuests.CheckLoginReminder then
-            FK.DailyQuests:CheckLoginReminder()
-        end
-    end)
+    C_Timer.After(3, function() FK.Events:Fire("LOGIN_READY") end)
 end
 
 eventHandlers.PLAYER_LOGOUT = function()
-    -- Save session data
-    if FK.Statistics and FK.Statistics.SaveSession then
-        FK.Statistics:SaveSession()
-    end
+    FK.Events:Fire("SESSION_ENDING")
 end
 
 -- TBC Classic event signature: (unit, spell, rank, lineID, spellID)
@@ -716,20 +728,7 @@ eventHandlers.UNIT_SPELLCAST_START = function(unit, arg2, arg3, arg4, arg5)
         FK.State.waitingForLoot = false  -- Clear stale state from previous cast
         FK:Debug("Fishing cast started - spell: " .. tostring(spellName) .. " gen=" .. FK.State.castGen)
 
-        -- Notify alerts module (sounds/visuals start immediately)
-        if FK.Alerts and FK.Alerts.OnCastStart then
-            FK.Alerts:OnCastStart()
-        end
-
-        -- Update UI (cast bar starts immediately)
-        if FK.UI and FK.UI.OnFishingStart then
-            FK.UI:OnFishingStart()
-        end
-
-        -- Clear double-click binding now that the cast fired
-        if FK.UI and FK.UI.OnFishingCastStarted then
-            FK.UI:OnFishingCastStarted()
-        end
+        FK.Events:Fire("FISHING_STARTED")
     end
 end
 
@@ -782,15 +781,7 @@ eventHandlers.UNIT_SPELLCAST_FAILED = function(unit, arg2, arg3, arg4, arg5)
                 FK:Debug("Fishing cast failed")
                 FK:Debug("SPELLCAST_FAILED reset isFishing=false (gen=" .. savedGen .. ")")
 
-                -- Update statistics (got away counter)
-                if FK.Statistics and FK.Statistics.OnCastFailed then
-                    FK.Statistics:OnCastFailed()
-                end
-
-                -- Update UI
-                if FK.UI and FK.UI.OnFishingEnd then
-                    FK.UI:OnFishingEnd()
-                end
+                FK.Events:Fire("FISHING_FAILED")
 
             else
                 FK:Debug("SPELLCAST_FAILED ignored (gen changed " .. savedGen .. " -> " .. FK.State.castGen .. ")")
@@ -852,9 +843,7 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_START = function(unit, arg2, arg3, arg4, ar
 
         -- Boost sounds and start event watching now that the bobber is in the water.
         -- Mirrors BetterFishing: enhance at CHANNEL_START, restore at CHANNEL_STOP.
-        if FK.Alerts and FK.Alerts.OnBobberLanded then
-            FK.Alerts:OnBobberLanded()
-        end
+        FK.Events:Fire("BOBBER_LANDED")
         -- Cast is counted at resolution (catch via OnLootReady, miss via 1s timeout)
         -- so we do NOT call OnCastStart here. Re-casts are simply never counted.
     end
@@ -879,9 +868,7 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, arg2, arg3, arg4, arg
         -- We'll set it false in LOOT_CLOSED instead
         FK:Debug("Fishing channel stopped (waiting for loot)")
 
-        if FK.Alerts and FK.Alerts.OnFishingEnd then
-            FK.Alerts:OnFishingEnd()
-        end
+        FK.Events:Fire("FISHING_BITE")
 
         -- Set a flag to know we're waiting for loot
         FK.State.waitingForLoot = true
@@ -907,17 +894,7 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, arg2, arg3, arg4, arg
                 FK.State.waitingForLoot = false
                 FK:Debug("Fishing timeout - no loot (fish got away)")
 
-                -- Count this as a completed (missed) cast
-                if FK.Statistics and FK.Statistics.OnCastStart then
-                    FK.Statistics:OnCastStart()
-                end
-
-                if FK.Alerts and FK.Alerts.OnFishingComplete then
-                    FK.Alerts:OnFishingComplete()
-                end
-                if FK.UI and FK.UI.OnFishingEnd then
-                    FK.UI:OnFishingEnd()
-                end
+                FK.Events:Fire("FISHING_MISSED")
             else
                 FK:Debug("Timeout skipped (gen changed " .. savedGen .. " -> " .. FK.State.castGen .. ")")
             end
@@ -930,9 +907,7 @@ eventHandlers.LOOT_READY = function()
     -- IsFishingLoot() is a Blizzard API that returns true when the loot source is a fishing bobber.
     if IsFishingLoot and IsFishingLoot() then
         FK:Debug("LOOT_READY: fishing loot detected")
-        if FK.Statistics and FK.Statistics.OnLootReady then
-            FK.Statistics:OnLootReady()
-        end
+        FK.Events:Fire("FISHING_LOOT_READY")
     end
 end
 
@@ -942,26 +917,7 @@ eventHandlers.LOOT_OPENED = function()
         FK:Debug("Loot window opened (fishing catch!)")
         FK.State.waitingForLoot = false  -- Clear the waiting flag
 
-        -- Record bite timing for confidence band
-        if FK.Statistics and FK.Statistics.RecordBiteTime then
-            FK.Statistics:RecordBiteTime()
-        end
-
-        -- Record pool location from the last detected pool name
-        -- This is the most accurate time: bobber is AT the pool
-        if FK.Pools and FK.Pools.RecordPoolFromCatch then
-            FK.Pools:RecordPoolFromCatch()
-        end
-
-        -- Update UI
-        if FK.UI and FK.UI.OnLootOpened then
-            FK.UI:OnLootOpened()
-        end
-
-        -- Extend double-click window through the loot process
-        if FK.UI and FK.UI.ExtendDoubleClick then
-            FK.UI:ExtendDoubleClick()
-        end
+        FK.Events:Fire("FISHING_LOOT_OPENED")
     end
 end
 
@@ -1008,21 +964,7 @@ eventHandlers.LOOT_CLOSED = function()
             FK.State.waitingForLoot = false
             FK:Debug("LOOT_CLOSED reset state (gen=" .. expectedGen .. ")")
 
-            -- Restore sound levels now that fishing is truly done
-            if FK.Alerts and FK.Alerts.OnFishingComplete then
-                FK.Alerts:OnFishingComplete()
-            end
-
-            -- Update UI
-            if FK.UI and FK.UI.OnFishingEnd then
-                FK.UI:OnFishingEnd()
-            end
-
-            -- Double-click recast: if they double-clicked during the catch,
-            -- set the binding now so the next right-click recasts
-            if FK.UI and FK.UI.OnFishingLootClosed then
-                FK.UI:OnFishingLootClosed()
-            end
+            FK.Events:Fire("FISHING_COMPLETE")
 
         else
             -- New cast started, just clear the waiting flag
@@ -1035,45 +977,22 @@ eventHandlers.LOOT_CLOSED = function()
 
         -- Auto-open fishing containers (crates, scroll cases) if enabled
         if FK.db and FK.db.settings.autoOpenContainers then
-            C_Timer.After(0.5, function()
-                if FK.UI and FK.UI.AutoOpenContainers then
-                    FK.UI:AutoOpenContainers()
-                end
-            end)
+            C_Timer.After(0.5, function() FK.Events:Fire("AUTO_OPEN_CONTAINERS") end)
         end
 
         -- Auto-reapply lure if enabled and lure is missing/expired
-        C_Timer.After(0.6, function()
-            if FK.Equipment and FK.Equipment.TryAutoReapplyLure then
-                FK.Equipment:TryAutoReapplyLure()
-            end
-        end)
+        C_Timer.After(0.6, function() FK.Events:Fire("LURE_CHECK") end)
     end
 end
 
 eventHandlers.QUEST_TURNED_IN = function(questName, questID)
-    if FK.DailyQuests and FK.DailyQuests.OnQuestTurnedIn then
-        FK.DailyQuests:OnQuestTurnedIn(questID)
-    end
+    FK.Events:Fire("QUEST_TURNED_IN", questID)
 end
 
 eventHandlers.ZONE_CHANGED = function()
     UpdateZoneInfo()
 
-    -- Notify UI of zone change
-    if FK.UI and FK.UI.OnZoneChanged then
-        FK.UI:OnZoneChanged()
-    end
-
-    -- Update pool tracking
-    if FK.Pools and FK.Pools.OnZoneChanged then
-        FK.Pools:OnZoneChanged()
-    end
-
-    -- Check cycle fish time windows
-    if FK.Alerts and FK.Alerts.CheckCycleFishWindows then
-        FK.Alerts:CheckCycleFishWindows()
-    end
+    FK.Events:Fire("ZONE_CHANGED")
 end
 
 eventHandlers.ZONE_CHANGED_INDOORS = eventHandlers.ZONE_CHANGED
@@ -1085,39 +1004,19 @@ eventHandlers.CHAT_MSG_SKILL = function(msg)
         FK:Debug("Skill message: " .. msg)
         UpdateFishingSkill()
 
-        -- Track skill up
-        if FK.Statistics and FK.Statistics.OnSkillUp then
-            FK.Statistics:OnSkillUp()
-        end
-
-        -- Update UI
-        if FK.UI and FK.UI.OnSkillUpdate then
-            FK.UI:OnSkillUpdate()
-        end
+        FK.Events:Fire("FISHING_SKILL_UP")
     end
 end
 
 eventHandlers.SKILL_LINES_CHANGED = function()
     UpdateFishingSkill()
-
-    -- Update UI
-    if FK.UI and FK.UI.OnSkillUpdate then
-        FK.UI:OnSkillUpdate()
-    end
+    FK.Events:Fire("SKILL_UPDATED")
 end
 
 eventHandlers.PLAYER_EQUIPMENT_CHANGED = function(slot)
     UpdateLureStatus()
 
-    -- Notify equipment module
-    if FK.Equipment and FK.Equipment.OnEquipmentChanged then
-        FK.Equipment:OnEquipmentChanged(slot)
-    end
-
-    -- Update UI
-    if FK.UI and FK.UI.OnEquipmentChanged then
-        FK.UI:OnEquipmentChanged()
-    end
+    FK.Events:Fire("EQUIPMENT_CHANGED", slot)
 end
 
 eventHandlers.UNIT_INVENTORY_CHANGED = function(unit)
@@ -1131,10 +1030,7 @@ eventHandlers.PLAYER_REGEN_DISABLED = function()
     FK.State.inCombat = true
     FK:Debug("Entered combat")
 
-    -- Hide navigation arrow during combat
-    if FK.Navigation and FK.Navigation.OnCombatStart then
-        FK.Navigation:OnCombatStart()
-    end
+    FK.Events:Fire("COMBAT_START")
 
     -- Cancel any pending swap retry from a previous combat cycle
     if FK.State._combatSwapRetry then
@@ -1164,10 +1060,7 @@ eventHandlers.PLAYER_REGEN_ENABLED = function()
     FK.State.inCombat = false
     FK:Debug("Left combat")
 
-    -- Show navigation arrow after combat
-    if FK.Navigation and FK.Navigation.OnCombatEnd then
-        FK.Navigation:OnCombatEnd()
-    end
+    FK.Events:Fire("COMBAT_END")
 
     -- Resume fishing: restore only the fishing pole that was in mainhand before combat.
     -- We do NOT call EquipFishingGear here — that would re-invoke SaveNormalGear while

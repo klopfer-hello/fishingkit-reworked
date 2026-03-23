@@ -109,6 +109,11 @@ end
 
 function DQ:Initialize()
     self:CreateFrame()
+
+    -- Subscribe to events
+    FK.Events:On("LOGIN_READY",     function() DQ:CheckLoginReminder() end)
+    FK.Events:On("QUEST_TURNED_IN", function(questID) DQ:OnQuestTurnedIn(questID) end)
+
     FK:Debug("DailyQuests module initialized")
 end
 

@@ -59,6 +59,14 @@ function Stats:Initialize()
         FK.chardb.stats.sessionCatches = 0
     end
 
+    -- Subscribe to fishing events
+    FK.Events:On("FISHING_LOOT_READY",  function() Stats:OnLootReady() end)
+    FK.Events:On("FISHING_LOOT_OPENED", function() Stats:RecordBiteTime() end)
+    FK.Events:On("FISHING_MISSED",      function() Stats:OnCastStart() end)
+    FK.Events:On("FISHING_FAILED",      function() Stats:OnCastFailed() end)
+    FK.Events:On("FISHING_SKILL_UP",    function() Stats:OnSkillUp() end)
+    FK.Events:On("SESSION_ENDING",      function() Stats:SaveSession() end)
+
     FK:Debug("Statistics module initialized")
 end
 

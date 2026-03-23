@@ -185,6 +185,10 @@ function Pools:Initialize()
         hideOnEscape = true,
     }
 
+    -- Subscribe to fishing events
+    FK.Events:On("FISHING_LOOT_OPENED", function() Pools:RecordPoolFromCatch() end)
+    FK.Events:On("ZONE_CHANGED",        function() Pools:OnZoneChanged() end)
+
     FK:Debug("Pools module initialized")
 end
 

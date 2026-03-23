@@ -67,6 +67,14 @@ function Alerts:Initialize()
     -- Create the cast timer frame
     self:CreateTimerFrame()
 
+    -- Subscribe to fishing events
+    FK.Events:On("FISHING_STARTED",  function() Alerts:OnCastStart() end)
+    FK.Events:On("BOBBER_LANDED",    function() Alerts:OnBobberLanded() end)
+    FK.Events:On("FISHING_BITE",     function() Alerts:OnFishingEnd() end)
+    FK.Events:On("FISHING_MISSED",   function() Alerts:OnFishingComplete() end)
+    FK.Events:On("FISHING_COMPLETE", function() Alerts:OnFishingComplete() end)
+    FK.Events:On("ZONE_CHANGED",     function() Alerts:CheckCycleFishWindows() end)
+
     FK:Debug("Alerts module initialized")
 end
 

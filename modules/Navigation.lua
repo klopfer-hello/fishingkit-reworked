@@ -1006,6 +1006,10 @@ function Navigation:Initialize()
         end)
     end
 
+    -- Subscribe to combat events
+    FK.Events:On("COMBAT_START", function() Navigation:OnCombatStart() end)
+    FK.Events:On("COMBAT_END",   function() Navigation:OnCombatEnd() end)
+
     FK:Debug("Navigation module initialized")
 end
 

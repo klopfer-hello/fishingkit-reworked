@@ -129,6 +129,18 @@ function UI:Initialize()
     -- Setup double-right-click casting
     self:SetupDoubleClickCast()
 
+    -- Subscribe to fishing events
+    FK.Events:On("FISHING_STARTED",      function() UI:OnFishingStart(); UI:OnFishingCastStarted() end)
+    FK.Events:On("FISHING_FAILED",       function() UI:OnFishingEnd() end)
+    FK.Events:On("FISHING_MISSED",       function() UI:OnFishingEnd() end)
+    FK.Events:On("FISHING_LOOT_OPENED",  function() UI:OnLootOpened(); UI:ExtendDoubleClick() end)
+    FK.Events:On("FISHING_COMPLETE",     function() UI:OnFishingEnd(); UI:OnFishingLootClosed() end)
+    FK.Events:On("ZONE_CHANGED",         function() UI:OnZoneChanged() end)
+    FK.Events:On("FISHING_SKILL_UP",     function() UI:OnSkillUpdate() end)
+    FK.Events:On("SKILL_UPDATED",        function() UI:OnSkillUpdate() end)
+    FK.Events:On("EQUIPMENT_CHANGED",    function() UI:OnEquipmentChanged() end)
+    FK.Events:On("AUTO_OPEN_CONTAINERS", function() UI:AutoOpenContainers() end)
+
     FK:Debug("UI module initialized")
 end
 

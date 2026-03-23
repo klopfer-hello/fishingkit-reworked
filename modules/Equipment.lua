@@ -120,6 +120,10 @@ function Equip:Initialize()
         self:ScanEquipment()
     end)
 
+    -- Subscribe to equipment/fishing events
+    FK.Events:On("EQUIPMENT_CHANGED", function(slot) Equip:OnEquipmentChanged(slot) end)
+    FK.Events:On("LURE_CHECK",        function() Equip:TryAutoReapplyLure() end)
+
     FK:Debug("Equipment module initialized")
 end
 
