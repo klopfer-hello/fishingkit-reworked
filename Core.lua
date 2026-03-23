@@ -293,6 +293,17 @@ function FK:FormatNumber(num)
     end
 end
 
+-- Iterate every non-empty bag slot, calling fn(bag, slot, itemLink) for each.
+-- Covers the backpack (0) through all four bag slots (1-4).
+function FK:ForEachBagSlot(fn)
+    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
+        for slot = 1, GetContainerNumSlots(bag) do
+            local itemLink = GetContainerItemLink(bag, slot)
+            if itemLink then fn(bag, slot, itemLink) end
+        end
+    end
+end
+
 function FK:TableCopy(t)
     local copy = {}
     for k, v in pairs(t) do
@@ -962,26 +973,19 @@ local function ProcessReleaseList()
     if not FK.chardb or not FK.chardb.releaseList then return end
     if not next(FK.chardb.releaseList) then return end
 
-    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-        local numSlots = GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local itemLink = GetContainerItemLink(bag, slot)
-
-            if itemLink then
-                local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
-                if itemID and FK.chardb.releaseList[itemID] then
-                    -- Only auto-delete gray (0) and white (1) quality items for safety
-                    local _, _, quality = GetItemInfo(itemLink)
-                    if quality and quality <= 1 then
-                        PickupContainerItem(bag, slot)
-                        DeleteCursorItem()
-                        local name = GetItemInfo(itemID)
-                        FK:Debug("Released: " .. (name or "item " .. itemID))
-                    end
-                end
+    FK:ForEachBagSlot(function(bag, slot, itemLink)
+        local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
+        if itemID and FK.chardb.releaseList[itemID] then
+            -- Only auto-delete gray (0) and white (1) quality items for safety
+            local _, _, quality = GetItemInfo(itemLink)
+            if quality and quality <= 1 then
+                PickupContainerItem(bag, slot)
+                DeleteCursorItem()
+                local name = GetItemInfo(itemID)
+                FK:Debug("Released: " .. (name or "item " .. itemID))
             end
         end
-    end
+    end)
 end
 
 eventHandlers.LOOT_CLOSED = function()
@@ -1578,20 +1582,13 @@ end
 
 function FK:GetTaskyfishCount()
     local count = 0
-    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-        local numSlots = GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local itemLink = GetContainerItemLink(bag, slot)
-            if itemLink then
-                local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
-                if itemID == 19807 then
-                    local _, itemCount = GetContainerItemInfo(bag, slot)
-                    itemCount = itemCount or 1
-                    count = count + (itemCount or 1)
-                end
-            end
+    FK:ForEachBagSlot(function(bag, slot, itemLink)
+        local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
+        if itemID == 19807 then
+            local _, itemCount = GetContainerItemInfo(bag, slot)
+            count = count + (itemCount or 1)
         end
-    end
+    end)
     return count
 end
 

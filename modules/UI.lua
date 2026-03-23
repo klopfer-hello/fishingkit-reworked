@@ -1338,32 +1338,18 @@ function UI:GetOpenableItems()
     local items = {}
     local totalCount = 0
 
-    for bag = 0, 4 do
-        local numSlots = GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local itemLink = GetContainerItemLink(bag, slot)
-            local itemCount
-
-            -- Get item count
-            if itemLink then
-                local _, count = GetContainerItemInfo(bag, slot)
-                itemCount = count or 1
-
-                local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
-                if itemID and OPENABLE_ITEMS[itemID] then
-                    table.insert(items, {
-                        bag = bag,
-                        slot = slot,
-                        itemID = itemID,
-                        name = OPENABLE_ITEMS[itemID],
-                        count = itemCount,
-                        link = itemLink,
-                    })
-                    totalCount = totalCount + itemCount
-                end
-            end
+    FK:ForEachBagSlot(function(bag, slot, itemLink)
+        local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
+        if itemID and OPENABLE_ITEMS[itemID] then
+            local _, count = GetContainerItemInfo(bag, slot)
+            local itemCount = count or 1
+            table.insert(items, {
+                bag = bag, slot = slot, itemID = itemID,
+                name = OPENABLE_ITEMS[itemID], count = itemCount, link = itemLink,
+            })
+            totalCount = totalCount + itemCount
         end
-    end
+    end)
 
     return items, totalCount
 end

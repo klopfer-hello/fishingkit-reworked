@@ -586,41 +586,30 @@ function Equip:GetBestAvailableLure()
     -- Search bags for lures, aggregate counts across all stacks per lure type
     local lureTotals = {}  -- [itemID] = { total count, first bag, first slot, icon }
 
-    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-        local numSlots = GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local texture, itemCount = GetContainerItemInfo(bag, slot)
-            local itemIcon = texture
-            local itemLink = GetContainerItemLink(bag, slot)
-
-            if itemLink then
-                local itemID = self:GetItemIDFromLink(itemLink)
-                if itemID then
-                    local lureData = FK.Database.Lures[itemID]
-                    if lureData then
-                        if not lureTotals[itemID] then
-                            if not itemIcon then
-                                local _, _, _, _, _, _, _, _, _, tex = GetItemInfo(itemID)
-                                itemIcon = tex
-                            end
-                            lureTotals[itemID] = {
-                                bag = bag,
-                                slot = slot,
-                                itemID = itemID,
-                                name = lureData.name,
-                                bonus = lureData.bonus,
-                                duration = lureData.duration,
-                                count = itemCount or 1,
-                                icon = itemIcon,
-                            }
-                        else
-                            lureTotals[itemID].count = lureTotals[itemID].count + (itemCount or 1)
-                        end
+    FK:ForEachBagSlot(function(bag, slot, itemLink)
+        local itemID = self:GetItemIDFromLink(itemLink)
+        if itemID then
+            local lureData = FK.Database.Lures[itemID]
+            if lureData then
+                local texture, itemCount = GetContainerItemInfo(bag, slot)
+                if not lureTotals[itemID] then
+                    local itemIcon = texture
+                    if not itemIcon then
+                        local _, _, _, _, _, _, _, _, _, tex = GetItemInfo(itemID)
+                        itemIcon = tex
                     end
+                    lureTotals[itemID] = {
+                        bag = bag, slot = slot, itemID = itemID,
+                        name = lureData.name, bonus = lureData.bonus,
+                        duration = lureData.duration,
+                        count = itemCount or 1, icon = itemIcon,
+                    }
+                else
+                    lureTotals[itemID].count = lureTotals[itemID].count + (itemCount or 1)
                 end
             end
         end
-    end
+    end)
 
     -- Pick the best lure (highest bonus)
     local bestLure = nil
@@ -816,42 +805,26 @@ end
 function Equip:GetFishingPolesInBags()
     local poles = {}
 
-    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-        local numSlots = GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local itemLink = GetContainerItemLink(bag, slot)
-
-            if itemLink then
-                local itemID = self:GetItemIDFromLink(itemLink)
-                if itemID then
-                    local poleData = FK.Database.FishingPoles[itemID]
-                    if poleData then
-                        table.insert(poles, {
-                            bag = bag,
-                            slot = slot,
-                            itemID = itemID,
-                            name = poleData.name,
-                            bonus = poleData.bonus,
-                            link = itemLink,
-                        })
-                    else
-                        -- Check by item subtype
-                        local _, _, _, _, _, itemType, itemSubType = GetItemInfo(itemLink)
-                        if itemSubType and (itemSubType == "Fishing Poles" or itemSubType == "Fishing Pole") then
-                            table.insert(poles, {
-                                bag = bag,
-                                slot = slot,
-                                itemID = itemID,
-                                name = itemLink,
-                                bonus = 0,
-                                link = itemLink,
-                            })
-                        end
-                    end
+    FK:ForEachBagSlot(function(bag, slot, itemLink)
+        local itemID = self:GetItemIDFromLink(itemLink)
+        if itemID then
+            local poleData = FK.Database.FishingPoles[itemID]
+            if poleData then
+                table.insert(poles, {
+                    bag = bag, slot = slot, itemID = itemID,
+                    name = poleData.name, bonus = poleData.bonus, link = itemLink,
+                })
+            else
+                local _, _, _, _, _, _, itemSubType = GetItemInfo(itemLink)
+                if itemSubType and (itemSubType == "Fishing Poles" or itemSubType == "Fishing Pole") then
+                    table.insert(poles, {
+                        bag = bag, slot = slot, itemID = itemID,
+                        name = itemLink, bonus = 0, link = itemLink,
+                    })
                 end
             end
         end
-    end
+    end)
 
     -- Sort by bonus
     table.sort(poles, function(a, b) return a.bonus > b.bonus end)
@@ -862,31 +835,20 @@ end
 function Equip:GetLuresInBags()
     local lures = {}
 
-    for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-        local numSlots = GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local _, itemCount = GetContainerItemInfo(bag, slot)
-            local itemLink = GetContainerItemLink(bag, slot)
-
-            if itemLink then
-                local itemID = self:GetItemIDFromLink(itemLink)
-                if itemID then
-                    local lureData = FK.Database.Lures[itemID]
-                    if lureData and lureData.duration then  -- Only consumable lures
-                        table.insert(lures, {
-                            bag = bag,
-                            slot = slot,
-                            itemID = itemID,
-                            name = lureData.name,
-                            bonus = lureData.bonus,
-                            duration = lureData.duration,
-                            count = itemCount or 1,
-                        })
-                    end
-                end
+    FK:ForEachBagSlot(function(bag, slot, itemLink)
+        local itemID = self:GetItemIDFromLink(itemLink)
+        if itemID then
+            local lureData = FK.Database.Lures[itemID]
+            if lureData and lureData.duration then  -- Only consumable lures
+                local _, itemCount = GetContainerItemInfo(bag, slot)
+                table.insert(lures, {
+                    bag = bag, slot = slot, itemID = itemID,
+                    name = lureData.name, bonus = lureData.bonus,
+                    duration = lureData.duration, count = itemCount or 1,
+                })
             end
         end
-    end
+    end)
 
     -- Sort by bonus
     table.sort(lures, function(a, b) return a.bonus > b.bonus end)
