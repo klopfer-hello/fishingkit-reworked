@@ -24,6 +24,7 @@
 Core.lua
 modules\Database.lua
 modules\Statistics.lua
+modules\StatsPanel.lua
 
 # Features
 FishingKit.xml
