@@ -1274,6 +1274,15 @@ end)
 -- Slash Commands
 -- ============================================================================
 
+-- Command registry: cmd string → handler(args).
+-- Any module can call FK:RegisterCommand() in its Initialize() to add
+-- commands without touching this file (Open/Closed).
+local cmdRegistry = {}
+
+function FK:RegisterCommand(cmd, handler)
+    cmdRegistry[cmd] = handler
+end
+
 SLASH_FISHINGKIT1 = "/fk"
 SLASH_FISHINGKIT2 = "/fishingkit"
 SLASH_FISHINGKIT3 = "/fishkit"
@@ -1282,340 +1291,333 @@ SlashCmdList["FISHINGKIT"] = function(msg)
     msg = string.lower(msg or "")
     local cmd, args = string.match(msg, "^(%S+)%s*(.*)$")
     cmd = cmd or msg
+    args = args or ""
 
-    if cmd == "" or cmd == "show" then
-        if FK.UI and FK.UI.Toggle then
-            FK.UI:Toggle()
+    -- Empty command → toggle main UI
+    if cmd == "" then
+        if FK.UI and FK.UI.Toggle then FK.UI:Toggle() end
+        return
+    end
+
+    local handler = cmdRegistry[cmd]
+    if handler then
+        handler(args)
+    else
+        FK:Print("Unknown command '" .. cmd .. "'. Type /fk help for options.", FK.Colors.warning)
+    end
+end
+
+-- ============================================================================
+-- Command registrations
+-- Modules can add their own in Initialize(); these cover core/cross-cutting.
+-- ============================================================================
+
+FK:RegisterCommand("show", function()
+    if FK.UI and FK.UI.Toggle then FK.UI:Toggle() end
+end)
+
+FK:RegisterCommand("hide", function()
+    if FK.UI and FK.UI.Hide then FK.UI:Hide() end
+end)
+
+local function cmdConfig()
+    if FK.Config and FK.Config.Toggle then FK.Config:Toggle() end
+end
+FK:RegisterCommand("config",  cmdConfig)
+FK:RegisterCommand("options", cmdConfig)
+FK:RegisterCommand("opt",     cmdConfig)
+
+FK:RegisterCommand("stats", function()
+    if FK.Statistics and FK.Statistics.ToggleStatsPanel then
+        FK.Statistics:ToggleStatsPanel()
+    elseif FK.Statistics and FK.Statistics.ShowSummary then
+        FK.Statistics:ShowSummary()
+    end
+end)
+
+FK:RegisterCommand("reset", function(args)
+    if args == "stats" then
+        if FK.Statistics and FK.Statistics.ResetStats then
+            FK.Statistics:ResetStats()
+            FK:Print("Statistics reset!", FK.Colors.success)
         end
-
-    elseif cmd == "hide" then
-        if FK.UI and FK.UI.Hide then
-            FK.UI:Hide()
+    elseif args == "position" or args == "pos" then
+        if FK.UI and FK.UI.ResetPosition then
+            FK.UI:ResetPosition()
+            FK:Print("UI position reset!", FK.Colors.success)
         end
+    else
+        FK:Print("Usage: /fk reset [stats|position]", FK.Colors.warning)
+    end
+end)
 
-    elseif cmd == "config" or cmd == "options" or cmd == "opt" then
-        if FK.Config and FK.Config.Toggle then
-            FK.Config:Toggle()
+FK:RegisterCommand("lock", function()
+    if FK.db then
+        FK.db.settings.locked = true
+        FK:Print("UI locked.", FK.Colors.success)
+    end
+end)
+
+FK:RegisterCommand("unlock", function()
+    if FK.db then
+        FK.db.settings.locked = false
+        FK:Print("UI unlocked. Drag to move.", FK.Colors.success)
+    end
+end)
+
+FK:RegisterCommand("scale", function(args)
+    local scale = tonumber(args)
+    if not scale then
+        FK:Print("Invalid number: '" .. args .. "'. Usage: /fk scale [0.5-2.0]", FK.Colors.error)
+    elseif scale < 0.5 or scale > 2.0 then
+        FK:Print("Scale must be between 0.5 and 2.0. Got: " .. scale, FK.Colors.warning)
+    else
+        FK.db.settings.scale = scale
+        if FK.UI and FK.UI.SetScale then FK.UI:SetScale(scale) end
+        FK:Print("Scale set to " .. scale, FK.Colors.success)
+    end
+end)
+
+FK:RegisterCommand("equip", function()
+    if FK.Equipment and FK.Equipment.EquipFishingGear then FK.Equipment:EquipFishingGear() end
+end)
+
+FK:RegisterCommand("unequip", function()
+    if FK.Equipment and FK.Equipment.EquipNormalGear then FK.Equipment:EquipNormalGear() end
+end)
+
+FK:RegisterCommand("savegear", function(args)
+    if args == "fishing" then
+        if FK.Equipment and FK.Equipment.SaveFishingGear then
+            FK.Equipment:SaveFishingGear()
+            FK:Print("Fishing gear saved!", FK.Colors.success)
         end
-
-    elseif cmd == "stats" then
-        if FK.Statistics and FK.Statistics.ToggleStatsPanel then
-            FK.Statistics:ToggleStatsPanel()
-        elseif FK.Statistics and FK.Statistics.ShowSummary then
-            FK.Statistics:ShowSummary()
+    elseif args == "normal" then
+        if FK.Equipment and FK.Equipment.SaveNormalGear then
+            FK.Equipment:SaveNormalGear()
+            FK:Print("Normal gear saved!", FK.Colors.success)
         end
+    else
+        FK:Print("Usage: /fk savegear [fishing|normal]", FK.Colors.warning)
+    end
+end)
 
-    elseif cmd == "reset" then
-        if args == "stats" then
-            if FK.Statistics and FK.Statistics.ResetStats then
-                FK.Statistics:ResetStats()
-                FK:Print("Statistics reset!", FK.Colors.success)
-            end
-        elseif args == "position" or args == "pos" then
-            if FK.UI and FK.UI.ResetPosition then
-                FK.UI:ResetPosition()
-                FK:Print("UI position reset!", FK.Colors.success)
-            end
-        else
-            FK:Print("Usage: /fk reset [stats|position]", FK.Colors.warning)
+FK:RegisterCommand("sound", function(args)
+    if args == "on" then
+        FK.db.settings.soundEnabled = true
+        FK:Print("Sound enabled.", FK.Colors.success)
+    elseif args == "off" then
+        FK.db.settings.soundEnabled = false
+        FK:Print("Sound disabled.", FK.Colors.success)
+    elseif args == "test" then
+        if FK.Alerts and FK.Alerts.TestSound then FK.Alerts:TestSound() end
+    else
+        FK:Print("Usage: /fk sound [on|off|test]", FK.Colors.warning)
+    end
+end)
+
+FK:RegisterCommand("pools", function(args)
+    if args == "on" then
+        FK.db.settings.trackPools = true
+        FK:Print("Pool tracking enabled.", FK.Colors.success)
+    elseif args == "off" then
+        FK.db.settings.trackPools = false
+        FK:Print("Pool tracking disabled.", FK.Colors.success)
+    elseif args == "clear" then
+        if FK.Pools and FK.Pools.ClearPoolData then
+            StaticPopup_Show("FISHINGKIT_CLEAR_POOLS")
         end
+    elseif args == "clearzone" then
+        if FK.Pools and FK.Pools.ClearZonePoolData then FK.Pools:ClearZonePoolData() end
+    else
+        if FK.Pools and FK.Pools.ShowNearbyPools then FK.Pools:ShowNearbyPools() end
+    end
+end)
 
-    elseif cmd == "lock" then
-        if FK.db then
-            FK.db.settings.locked = true
-            FK:Print("UI locked.", FK.Colors.success)
-        end
-
-    elseif cmd == "unlock" then
-        if FK.db then
-            FK.db.settings.locked = false
-            FK:Print("UI unlocked. Drag to move.", FK.Colors.success)
-        end
-
-    elseif cmd == "scale" then
-        local scale = tonumber(args)
-        if not scale then
-            FK:Print("Invalid number: '" .. args .. "'. Usage: /fk scale [0.5-2.0]", FK.Colors.error)
-        elseif scale < 0.5 or scale > 2.0 then
-            FK:Print("Scale must be between 0.5 and 2.0. Got: " .. scale, FK.Colors.warning)
-        else
-            FK.db.settings.scale = scale
-            if FK.UI and FK.UI.SetScale then
-                FK.UI:SetScale(scale)
-            end
-            FK:Print("Scale set to " .. scale, FK.Colors.success)
-        end
-
-    elseif cmd == "equip" then
-        if FK.Equipment and FK.Equipment.EquipFishingGear then
-            FK.Equipment:EquipFishingGear()
-        end
-
-    elseif cmd == "unequip" then
-        if FK.Equipment and FK.Equipment.EquipNormalGear then
-            FK.Equipment:EquipNormalGear()
-        end
-
-    elseif cmd == "savegear" then
-        if args == "fishing" then
-            if FK.Equipment and FK.Equipment.SaveFishingGear then
-                FK.Equipment:SaveFishingGear()
-                FK:Print("Fishing gear saved!", FK.Colors.success)
-            end
-        elseif args == "normal" then
-            if FK.Equipment and FK.Equipment.SaveNormalGear then
-                FK.Equipment:SaveNormalGear()
-                FK:Print("Normal gear saved!", FK.Colors.success)
-            end
-        else
-            FK:Print("Usage: /fk savegear [fishing|normal]", FK.Colors.warning)
-        end
-
-    elseif cmd == "sound" then
-        if args == "on" then
-            FK.db.settings.soundEnabled = true
-            FK:Print("Sound enabled.", FK.Colors.success)
-        elseif args == "off" then
-            FK.db.settings.soundEnabled = false
-            FK:Print("Sound disabled.", FK.Colors.success)
-        elseif args == "test" then
-            if FK.Alerts and FK.Alerts.TestSound then
-                FK.Alerts:TestSound()
-            end
-        else
-            FK:Print("Usage: /fk sound [on|off|test]", FK.Colors.warning)
-        end
-
-    elseif cmd == "pools" then
-        if args == "on" then
-            FK.db.settings.trackPools = true
-            FK:Print("Pool tracking enabled.", FK.Colors.success)
-        elseif args == "off" then
-            FK.db.settings.trackPools = false
-            FK:Print("Pool tracking disabled.", FK.Colors.success)
-        elseif args == "clear" then
-            if FK.Pools and FK.Pools.ClearPoolData then
-                StaticPopup_Show("FISHINGKIT_CLEAR_POOLS")
-            end
-        elseif args == "clearzone" then
-            if FK.Pools and FK.Pools.ClearZonePoolData then
-                FK.Pools:ClearZonePoolData()
-            end
-        else
-            if FK.Pools and FK.Pools.ShowNearbyPools then
-                FK.Pools:ShowNearbyPools()
-            end
-        end
-
-    elseif cmd == "goal" then
-        if args == "" then
-            -- List active goals
-            if FK.chardb and FK.chardb.goals and #FK.chardb.goals > 0 then
-                FK:Print("Active Goals:", FK.Colors.highlight)
-                for i, goal in ipairs(FK.chardb.goals) do
-                    local progress = 0
-                    if FK.Statistics and FK.Statistics.GetSessionFishCount then
-                        progress = FK.Statistics:GetSessionFishCount(goal.itemID)
-                    end
-                    local color = progress >= goal.target and FK.Colors.success or FK.Colors.warning
-                    print("  " .. i .. ". " .. goal.name .. ": " .. color .. progress .. "/" .. goal.target .. "|r")
+FK:RegisterCommand("goal", function(args)
+    if args == "" then
+        if FK.chardb and FK.chardb.goals and #FK.chardb.goals > 0 then
+            FK:Print("Active Goals:", FK.Colors.highlight)
+            for i, goal in ipairs(FK.chardb.goals) do
+                local progress = 0
+                if FK.Statistics and FK.Statistics.GetSessionFishCount then
+                    progress = FK.Statistics:GetSessionFishCount(goal.itemID)
                 end
-            else
-                FK:Print("No active goals. Use: /fk goal <fish name> <count>", FK.Colors.info)
-            end
-        elseif args == "clear" then
-            if FK.chardb then
-                FK.chardb.goals = {}
-                FK:Print("All goals cleared.", FK.Colors.success)
+                local color = progress >= goal.target and FK.Colors.success or FK.Colors.warning
+                print("  " .. i .. ". " .. goal.name .. ": " .. color .. progress .. "/" .. goal.target .. "|r")
             end
         else
-            -- Parse: "fish name count" - last word is count
-            local count = tonumber(string.match(args, "(%d+)%s*$"))
-            local fishName = string.match(args, "^(.-)%s+%d+%s*$")
-            if count and count > 0 and fishName and fishName ~= "" then
-                -- Try to find matching fish in catch history
-                local matchedID = nil
-                local matchedName = fishName
-                if FK.chardb and FK.chardb.stats and FK.chardb.stats.fishCaught then
-                    for itemID, data in pairs(FK.chardb.stats.fishCaught) do
-                        if data.name and string.lower(data.name) == string.lower(fishName) then
-                            matchedID = itemID
-                            matchedName = data.name
-                            break
-                        end
-                    end
-                end
-                -- Also search database
-                if not matchedID and FK.Database and FK.Database.GetFishIDByName then
-                    matchedID = FK.Database:GetFishIDByName(fishName)
-                    if matchedID then
-                        local fishData = FK.Database:GetFishInfo(matchedID)
-                        if fishData then matchedName = fishData.name end
-                    end
-                end
-
-                if not FK.chardb.goals then FK.chardb.goals = {} end
-                table.insert(FK.chardb.goals, {
-                    name = matchedName,
-                    itemID = matchedID,
-                    target = count,
-                })
-                FK:Print("Goal set: " .. FK.Colors.highlight .. matchedName .. "|r x" .. count, FK.Colors.success)
-                if not matchedID then
-                    FK:Print("Fish not found in history - goal will track by name.", FK.Colors.info)
-                end
-            else
-                FK:Print("Usage: /fk goal <fish name> <count>", FK.Colors.warning)
-                FK:Print("Example: /fk goal Stonescale Eel 50", FK.Colors.info)
-            end
+            FK:Print("No active goals. Use: /fk goal <fish name> <count>", FK.Colors.info)
         end
-
-    elseif cmd == "release" then
-        if args == "" then
-            -- List release items
-            if FK.chardb and FK.chardb.releaseList and next(FK.chardb.releaseList) then
-                FK:Print("Catch & Release List:", FK.Colors.highlight)
-                for itemID, name in pairs(FK.chardb.releaseList) do
-                    print("  " .. name .. " (ID: " .. itemID .. ")")
-                end
-            else
-                FK:Print("Release list is empty. Use: /fk release <fish name>", FK.Colors.info)
-            end
-        elseif args == "clear" then
-            if FK.chardb then
-                FK.chardb.releaseList = {}
-                FK:Print("Release list cleared.", FK.Colors.success)
-            end
-        else
-            -- Find fish by name in catch history
-            local matchedID = nil
-            local matchedName = args
+    elseif args == "clear" then
+        if FK.chardb then
+            FK.chardb.goals = {}
+            FK:Print("All goals cleared.", FK.Colors.success)
+        end
+    else
+        local count    = tonumber(string.match(args, "(%d+)%s*$"))
+        local fishName = string.match(args, "^(.-)%s+%d+%s*$")
+        if count and count > 0 and fishName and fishName ~= "" then
+            local matchedID, matchedName = nil, fishName
             if FK.chardb and FK.chardb.stats and FK.chardb.stats.fishCaught then
                 for itemID, data in pairs(FK.chardb.stats.fishCaught) do
-                    if data.name and string.lower(data.name) == string.lower(args) then
-                        matchedID = itemID
-                        matchedName = data.name
+                    if data.name and string.lower(data.name) == string.lower(fishName) then
+                        matchedID, matchedName = itemID, data.name
                         break
                     end
                 end
             end
             if not matchedID and FK.Database and FK.Database.GetFishIDByName then
-                matchedID = FK.Database:GetFishIDByName(args)
+                matchedID = FK.Database:GetFishIDByName(fishName)
                 if matchedID then
-                    local fishData = FK.Database:GetFishInfo(matchedID)
-                    if fishData then matchedName = fishData.name end
+                    local fd = FK.Database:GetFishInfo(matchedID)
+                    if fd then matchedName = fd.name end
                 end
             end
-            if matchedID then
-                -- Check quality - only allow gray/white
-                local _, _, quality = GetItemInfo(matchedID)
-                if quality and quality > 1 then
-                    FK:Print("Cannot auto-release " .. matchedName .. " - only gray/white quality items allowed.", FK.Colors.error)
-                else
-                    if not FK.chardb.releaseList then FK.chardb.releaseList = {} end
-                    FK.chardb.releaseList[matchedID] = matchedName
-                    FK:Print("Added to release list: " .. FK.Colors.highlight .. matchedName .. "|r (will auto-delete on catch)", FK.Colors.success)
-                end
-            else
-                FK:Print("Fish not found: " .. args .. ". Catch it first, then add to release list.", FK.Colors.warning)
-            end
-        end
-
-    elseif cmd == "route" or cmd == "nav" then
-        if args == "stop" then
-            if FK.Navigation then
-                FK.Navigation:StopRoute()
-            end
-        elseif args == "skip" then
-            if FK.Navigation then
-                FK.Navigation:SkipWaypoint()
-            end
-        elseif args == "nearest" or args == "recalc" then
-            if FK.Navigation then
-                FK.Navigation:RecalculateFromNearest()
+            if not FK.chardb.goals then FK.chardb.goals = {} end
+            table.insert(FK.chardb.goals, { name = matchedName, itemID = matchedID, target = count })
+            FK:Print("Goal set: " .. FK.Colors.highlight .. matchedName .. "|r x" .. count, FK.Colors.success)
+            if not matchedID then
+                FK:Print("Fish not found in history - goal will track by name.", FK.Colors.info)
             end
         else
-            -- Toggle route on/off
-            if FK.Navigation then
-                FK.Navigation:ToggleRoute()
-            end
+            FK:Print("Usage: /fk goal <fish name> <count>", FK.Colors.warning)
+            FK:Print("Example: /fk goal Stonescale Eel 50", FK.Colors.info)
         end
+    end
+end)
 
-    elseif cmd == "import" then
-        if args == "gathermate" or args == "gathermate2" or args == "gm2" then
-            if FK.Navigation then
-                FK.Navigation:ImportFromGatherMate2()
+FK:RegisterCommand("release", function(args)
+    if args == "" then
+        if FK.chardb and FK.chardb.releaseList and next(FK.chardb.releaseList) then
+            FK:Print("Catch & Release List:", FK.Colors.highlight)
+            for itemID, name in pairs(FK.chardb.releaseList) do
+                print("  " .. name .. " (ID: " .. itemID .. ")")
             end
         else
-            FK:Print("Usage: /fk import gathermate", FK.Colors.warning)
+            FK:Print("Release list is empty. Use: /fk release <fish name>", FK.Colors.info)
         end
-
-    elseif cmd == "backup" then
-        if args == "restore" then
-            StaticPopupDialogs["FISHINGKIT_RESTORE_BACKUP"] = {
-                text = "Restore from last backup? This will overwrite current data. You'll need to /reload after.",
-                button1 = "Yes",
-                button2 = "No",
-                OnAccept = function()
-                    FK:RestoreBackup()
-                end,
-                timeout = 0,
-                whileDead = true,
-                hideOnEscape = true,
-            }
-            StaticPopup_Show("FISHINGKIT_RESTORE_BACKUP")
-        elseif args == "info" then
-            FK:GetBackupInfo()
-        else
-            FK:CreateBackup()
+    elseif args == "clear" then
+        if FK.chardb then
+            FK.chardb.releaseList = {}
+            FK:Print("Release list cleared.", FK.Colors.success)
         end
-
-    elseif cmd == "daily" then
-        if FK.DailyQuests then
-            if args == "print" then
-                FK.DailyQuests:PrintStatus()
-            else
-                FK.DailyQuests:Toggle()
-            end
-        end
-
-    elseif cmd == "debug" then
-        FK.debugMode = not FK.debugMode
-        FK:Print("Debug mode: " .. (FK.debugMode and "ON" or "OFF"), FK.Colors.info)
-
-    elseif cmd == "help" or cmd == "?" then
-        FK:Print("Commands:", FK.Colors.highlight)
-        print("  /fk - Toggle main UI")
-        print("  /fk config - Open options panel")
-        print("  /fk stats - Show fishing statistics")
-        print("  /fk reset [stats|position] - Reset data or UI position")
-        print("  /fk lock/unlock - Lock/unlock UI position")
-        print("  /fk scale [0.5-2.0] - Set UI scale")
-        print("  /fk equip/unequip - Swap fishing/normal gear")
-        print("  /fk savegear [fishing|normal] - Save current gear set")
-        print("  /fk sound [on|off|test] - Sound settings")
-        print("  /fk pools - Show nearby fishing pools")
-        print("  /fk pools clear - Clear all pool location data")
-        print("  /fk pools clearzone - Clear pool data for current zone")
-        print("  /fk goal <fish> <count> - Set a fishing goal")
-        print("  /fk goal clear - Clear all goals")
-        print("  /fk release <fish> - Auto-delete junk fish on catch")
-        print("  /fk release clear - Clear release list")
-        print("  /fk route - Toggle pool route navigation")
-        print("  /fk route stop - Stop navigation")
-        print("  /fk route skip - Skip current waypoint")
-        print("  /fk route nearest - Recalculate from nearest pool")
-        print("  /fk import gathermate - Import GatherMate2 pool data")
-        print("  /fk backup - Force a backup now")
-        print("  /fk backup restore - Restore from last backup")
-        print("  /fk backup info - Show backup timestamp")
-        print("  /fk daily - Toggle fishing daily quest tracker")
-        print("  /fk daily print - Print daily quest status to chat")
-
     else
-        FK:Print("Unknown command. Type /fk help for options.", FK.Colors.warning)
+        local matchedID, matchedName = nil, args
+        if FK.chardb and FK.chardb.stats and FK.chardb.stats.fishCaught then
+            for itemID, data in pairs(FK.chardb.stats.fishCaught) do
+                if data.name and string.lower(data.name) == string.lower(args) then
+                    matchedID, matchedName = itemID, data.name
+                    break
+                end
+            end
+        end
+        if not matchedID and FK.Database and FK.Database.GetFishIDByName then
+            matchedID = FK.Database:GetFishIDByName(args)
+            if matchedID then
+                local fd = FK.Database:GetFishInfo(matchedID)
+                if fd then matchedName = fd.name end
+            end
+        end
+        if matchedID then
+            local _, _, quality = GetItemInfo(matchedID)
+            if quality and quality > 1 then
+                FK:Print("Cannot auto-release " .. matchedName .. " - only gray/white quality items allowed.", FK.Colors.error)
+            else
+                if not FK.chardb.releaseList then FK.chardb.releaseList = {} end
+                FK.chardb.releaseList[matchedID] = matchedName
+                FK:Print("Added to release list: " .. FK.Colors.highlight .. matchedName .. "|r (will auto-delete on catch)", FK.Colors.success)
+            end
+        else
+            FK:Print("Fish not found: " .. args .. ". Catch it first, then add to release list.", FK.Colors.warning)
+        end
+    end
+end)
+
+local function cmdRoute(args)
+    if not FK.Navigation then return end
+    if args == "stop" then
+        FK.Navigation:StopRoute()
+    elseif args == "skip" then
+        FK.Navigation:SkipWaypoint()
+    elseif args == "nearest" or args == "recalc" then
+        FK.Navigation:RecalculateFromNearest()
+    else
+        FK.Navigation:ToggleRoute()
     end
 end
+FK:RegisterCommand("route", cmdRoute)
+FK:RegisterCommand("nav",   cmdRoute)
+
+FK:RegisterCommand("import", function(args)
+    if args == "gathermate" or args == "gathermate2" or args == "gm2" then
+        if FK.Navigation then FK.Navigation:ImportFromGatherMate2() end
+    else
+        FK:Print("Usage: /fk import gathermate", FK.Colors.warning)
+    end
+end)
+
+FK:RegisterCommand("backup", function(args)
+    if args == "restore" then
+        StaticPopupDialogs["FISHINGKIT_RESTORE_BACKUP"] = {
+            text = "Restore from last backup? This will overwrite current data. You'll need to /reload after.",
+            button1 = "Yes", button2 = "No",
+            OnAccept = function() FK:RestoreBackup() end,
+            timeout = 0, whileDead = true, hideOnEscape = true,
+        }
+        StaticPopup_Show("FISHINGKIT_RESTORE_BACKUP")
+    elseif args == "info" then
+        FK:GetBackupInfo()
+    else
+        FK:CreateBackup()
+    end
+end)
+
+FK:RegisterCommand("daily", function(args)
+    if not FK.DailyQuests then return end
+    if args == "print" then
+        FK.DailyQuests:PrintStatus()
+    else
+        FK.DailyQuests:Toggle()
+    end
+end)
+
+FK:RegisterCommand("debug", function()
+    FK.debugMode = not FK.debugMode
+    FK:Print("Debug mode: " .. (FK.debugMode and "ON" or "OFF"), FK.Colors.info)
+end)
+
+local function cmdHelp()
+    FK:Print("Commands:", FK.Colors.highlight)
+    print("  /fk - Toggle main UI")
+    print("  /fk config - Open options panel")
+    print("  /fk stats - Show fishing statistics")
+    print("  /fk reset [stats|position] - Reset data or UI position")
+    print("  /fk lock/unlock - Lock/unlock UI position")
+    print("  /fk scale [0.5-2.0] - Set UI scale")
+    print("  /fk equip/unequip - Swap fishing/normal gear")
+    print("  /fk savegear [fishing|normal] - Save current gear set")
+    print("  /fk sound [on|off|test] - Sound settings")
+    print("  /fk pools - Show nearby fishing pools")
+    print("  /fk pools clear - Clear all pool location data")
+    print("  /fk pools clearzone - Clear pool data for current zone")
+    print("  /fk goal <fish> <count> - Set a fishing goal")
+    print("  /fk goal clear - Clear all goals")
+    print("  /fk release <fish> - Auto-delete junk fish on catch")
+    print("  /fk release clear - Clear release list")
+    print("  /fk route - Toggle pool route navigation")
+    print("  /fk route stop - Stop navigation")
+    print("  /fk route skip - Skip current waypoint")
+    print("  /fk route nearest - Recalculate from nearest pool")
+    print("  /fk import gathermate - Import GatherMate2 pool data")
+    print("  /fk backup - Force a backup now")
+    print("  /fk backup restore - Restore from last backup")
+    print("  /fk backup info - Show backup timestamp")
+    print("  /fk daily - Toggle fishing daily quest tracker")
+    print("  /fk daily print - Print daily quest status to chat")
+end
+FK:RegisterCommand("help", cmdHelp)
+FK:RegisterCommand("?",    cmdHelp)
 
 -- ============================================================================
 -- STV Fishing Extravaganza
