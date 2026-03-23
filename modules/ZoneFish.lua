@@ -228,15 +228,25 @@ end
 -- Public API
 -- ============================================================================
 
+function ZF:Show()
+    if not panel then return end
+    panel:Show()
+    refreshElapsed = 0
+    self:Refresh()
+end
+
+function ZF:Hide()
+    if not panel then return end
+    panel:Hide()
+    refreshElapsed = 0
+end
+
 function ZF:Toggle()
     if not panel then return end
     if panel:IsShown() then
-        panel:Hide()
-        refreshElapsed = 0
+        self:Hide()
     else
-        panel:Show()
-        refreshElapsed = 0
-        self:Refresh()
+        self:Show()
     end
 end
 
