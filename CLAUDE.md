@@ -119,6 +119,8 @@ Key files to reference:
 | `18e9d40` | `SetOverrideBindingClick` set from `WorldFrame:OnMouseDown` never fired — the current click was already past the input dispatch stage | Moved double-click detection to `GLOBAL_MOUSE_DOWN` event (fires before click dispatch); `SetOverrideBindingClick` now takes effect for the same mouse-down event |
 | (v1.2.3) | Stats panel out of theme: `UIPanelCloseButton` template, plain white title word, WoW native scroll bar | Replaced with custom `×` close button; dimmed title; plain `ScrollFrame` + mousewheel + thin custom scroll thumb |
 | (v1.2.4) | Zone Fish (%) panel stays visible after closing main window — `UI:Hide()` never hid it; `ZF:Hide()` method didn't exist (silent Lua error) | Added `ZF:Hide()` + `ZF:Show()` to ZoneFish.lua; `UI:Hide()` calls `FK.ZoneFish:Hide()` |
+| (v1.3.0) | `IsFishingSpell` always returned false for `CHANNEL_START`/`CHANNEL_STOP` — enhanced audio, cast timer, and state machine broken | TBC Anniversary uses modern `(unit, castGUID, spellID)` signature (spellID=arg3), not old `(unit, spellName, rank, lineID, spellID)` (spellID=arg5). Restored `arg5 or arg3` fallback in `IsFishingSpell` and all spell event handlers |
+| (v1.3.0) | `UNIT_SPELLCAST_INTERRUPTED` never restored enhanced sound or fired events | Replaced direct `FK.Statistics`/`FK.UI` calls with `FK.Events:Fire("FISHING_MISSED")`/`"FISHING_FAILED"`; Alerts now subscribes to `FISHING_FAILED` |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 
@@ -129,6 +131,7 @@ Key files to reference:
 - `LOOT_READY` → fires when loot data is ready, before auto-loot runs
 - `LOOT_OPENED` → fires when loot window opens (after auto-loot with auto-loot enabled)
 - `UNIT_SPELLCAST_CHANNEL_STOP` fires when the fishing channel ends — in TBC Classic this fires at fish bite time, not at player click time
+- **`UNIT_SPELLCAST_*` event signature**: TBC Classic Anniversary uses the modern `(unit, castGUID, spellID)` 3-arg format (spellID is arg3), not the old TBC `(unit, spellName, rank, lineID, spellID)` 5-arg format (spellID is arg5). Use `local spellID = arg5 or arg3` to support both. BetterFishing confirms this: it destructures `CHANNEL_START` as `local unit, _, spellID = ...`.
 - `C_Timer.After(delay, func)` is available
 - Item links follow pattern `item:(%d+)` for extracting itemID
 - **`EquipItemByName` in combat**: only `"item:ID"` format works under combat lockdown. Item-name strings (e.g. `"Fool's Bane"`) and full hyperlinks (`|H...|h`) silently fail. Must be called immediately from `PLAYER_REGEN_DISABLED` — by the time `UNIT_INVENTORY_CHANGED` fires, lockdown is fully active.

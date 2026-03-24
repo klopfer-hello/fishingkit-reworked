@@ -733,11 +733,32 @@ eventHandlers.PLAYER_LOGOUT = function()
     FK.Events:Fire("SESSION_ENDING")
 end
 
--- TBC Classic event signature: (unit, spellName, rank, lineID, spellID)
-eventHandlers.UNIT_SPELLCAST_START = function(unit, spellName, rank, lineID, spellID)
+-- Spell event signatures vary by client version:
+--   TBC Classic (2.5.x old): (unit, spellName, rank, lineID, spellID) — spellID is arg5
+--   TBC Anniversary / modern: (unit, castGUID, spellID)               — spellID is arg3
+-- We handle both by checking arg5 first, falling back to arg3.
+
+-- Helper to check if spell is fishing (handles both event signatures)
+local function IsFishingSpell(arg2, arg3, arg4, arg5)
+    local spellID = arg5 or arg3  -- arg5 for old TBC, arg3 for modern
+    local spellName = arg2
+
+    if spellID and type(spellID) == "number" then
+        local name = GetSpellInfo(spellID)
+        if name then spellName = name end
+    end
+
+    return (spellName == FK.FishingSpellName) or
+           (spellName == "Fishing") or
+           (spellID == FK.FishingSpellID) or
+           (spellID == 7620)
+end
+
+eventHandlers.UNIT_SPELLCAST_START = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
-    -- Resolve name from ID if available (handles cases where name is nil)
+    local spellID = arg5 or arg3
+    local spellName = arg2
     if spellID and type(spellID) == "number" then
         local name = GetSpellInfo(spellID)
         if name then spellName = name end
@@ -765,44 +786,31 @@ eventHandlers.UNIT_SPELLCAST_START = function(unit, spellName, rank, lineID, spe
     end
 end
 
--- Helper to check if spell is fishing (TBC Classic: spellName, rank, lineID, spellID)
-local function IsFishingSpell(spellName, rank, lineID, spellID)
-    if spellID and type(spellID) == "number" then
-        local name = GetSpellInfo(spellID)
-        if name then spellName = name end
-    end
-
-    return (spellName == FK.FishingSpellName) or
-           (spellName == "Fishing") or
-           (spellID == FK.FishingSpellID) or
-           (spellID == 7620)
-end
-
-eventHandlers.UNIT_SPELLCAST_STOP = function(unit, spellName, rank, lineID, spellID)
+eventHandlers.UNIT_SPELLCAST_STOP = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
-    if IsFishingSpell(spellName, rank, lineID, spellID) then
+    if IsFishingSpell(arg2, arg3, arg4, arg5) then
         -- Cast stopped (bobber is now in water or cast was cancelled)
         FK:Debug("Fishing cast stopped (bobber deployed or cancelled)")
     end
 end
 
-eventHandlers.UNIT_SPELLCAST_SUCCEEDED = function(unit, spellName, rank, lineID, spellID)
+eventHandlers.UNIT_SPELLCAST_SUCCEEDED = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
-    if IsFishingSpell(spellName, rank, lineID, spellID) then
+    if IsFishingSpell(arg2, arg3, arg4, arg5) then
         FK:Debug("Fishing cast succeeded (bobber deployed)")
         -- Sound boost and watch setup happen at CHANNEL_START (when bobber hits
         -- the water), matching BetterFishing's timing exactly.
     end
 end
 
-eventHandlers.UNIT_SPELLCAST_FAILED = function(unit, spellName, rank, lineID, spellID)
+eventHandlers.UNIT_SPELLCAST_FAILED = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
-    FK:Debug("SPELLCAST_FAILED spell=" .. tostring(spellName) .. " isFishingCheck=" .. tostring(IsFishingSpell(spellName, rank, lineID, spellID)))
+    FK:Debug("SPELLCAST_FAILED isFishingCheck=" .. tostring(IsFishingSpell(arg2, arg3, arg4, arg5)))
 
-    if IsFishingSpell(spellName, rank, lineID, spellID) then
+    if IsFishingSpell(arg2, arg3, arg4, arg5) then
         -- Only reset if a new cast hasn't already started (castGen unchanged)
         local savedGen = FK.State.castGen
         C_Timer.After(0, function()
@@ -820,12 +828,12 @@ eventHandlers.UNIT_SPELLCAST_FAILED = function(unit, spellName, rank, lineID, sp
     end
 end
 
-eventHandlers.UNIT_SPELLCAST_INTERRUPTED = function(unit, spellName, rank, lineID, spellID)
+eventHandlers.UNIT_SPELLCAST_INTERRUPTED = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
-    FK:Debug("SPELLCAST_INTERRUPTED spell=" .. tostring(spellName))
+    FK:Debug("SPELLCAST_INTERRUPTED")
 
-    if IsFishingSpell(spellName, rank, lineID, spellID) then
+    if IsFishingSpell(arg2, arg3, arg4, arg5) then
         -- Only reset if a new cast hasn't already started (castGen unchanged)
         local savedGen = FK.State.castGen
         C_Timer.After(0, function()
@@ -837,17 +845,11 @@ eventHandlers.UNIT_SPELLCAST_INTERRUPTED = function(unit, spellName, rank, lineI
                 if wasChanneling then
                     -- Bobber was in water, this is "fish got away"
                     FK:Debug("INTERRUPTED fish got away (gen=" .. savedGen .. ")")
-                    if FK.Statistics and FK.Statistics.OnCastFailed then
-                        FK.Statistics:OnCastFailed()
-                    end
+                    FK.Events:Fire("FISHING_MISSED")
                 else
                     -- Bobber never deployed, user cancelled during cast animation
                     FK:Debug("INTERRUPTED user cancelled (gen=" .. savedGen .. ")")
-                end
-
-                -- Update UI
-                if FK.UI and FK.UI.OnFishingEnd then
-                    FK.UI:OnFishingEnd()
+                    FK.Events:Fire("FISHING_FAILED")
                 end
             else
                 FK:Debug("INTERRUPTED ignored (gen changed " .. savedGen .. " -> " .. FK.State.castGen .. ")")
@@ -856,13 +858,13 @@ eventHandlers.UNIT_SPELLCAST_INTERRUPTED = function(unit, spellName, rank, lineI
     end
 end
 
-eventHandlers.UNIT_SPELLCAST_CHANNEL_START = function(unit, spellName, rank, lineID, spellID)
+eventHandlers.UNIT_SPELLCAST_CHANNEL_START = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
-    FK:Debug("CHANNEL_START spell=" .. tostring(spellName) .. " isFishingCheck=" .. tostring(IsFishingSpell(spellName, rank, lineID, spellID)))
+    FK:Debug("CHANNEL_START isFishingCheck=" .. tostring(IsFishingSpell(arg2, arg3, arg4, arg5)))
 
     -- Fishing in TBC is a channel spell (bobber has landed in the water)
-    if IsFishingSpell(spellName, rank, lineID, spellID) then
+    if IsFishingSpell(arg2, arg3, arg4, arg5) then
         FK.State.isFishing = true
         FK.State.channelStarted = true  -- bobber is in the water
         FK.State.channelCastGen = FK.State.castGen  -- snapshot gen for this bobber
@@ -879,10 +881,10 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_START = function(unit, spellName, rank, lin
     end
 end
 
-eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, spellName, rank, lineID, spellID)
+eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
-    if IsFishingSpell(spellName, rank, lineID, spellID) then
+    if IsFishingSpell(arg2, arg3, arg4, arg5) then
         -- On a re-cast, SPELLCAST_START bumps castGen before CHANNEL_STOP fires
         -- for the old bobber (Scenario A).  channelCastGen (set at CHANNEL_START)
         -- still holds the old gen, so if they differ this is a stale CHANNEL_STOP

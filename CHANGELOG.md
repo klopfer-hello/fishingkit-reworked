@@ -1,20 +1,16 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
-## v1.3.0-beta.2
+## v1.3.0
+
+### Bug Fixes
+
+- **Enhanced audio while fishing not working** — `IsFishingSpell` always returned false for `UNIT_SPELLCAST_CHANNEL_START`/`CHANNEL_STOP` because TBC Classic Anniversary uses the modern 3-arg event signature `(unit, castGUID, spellID)` where spellID is arg3, not the old 5-arg format where spellID is arg5. This broke enhanced sound, cast timer, and the fishing state machine. Restored dual-signature handling with `arg5 or arg3` fallback, matching BetterFishing's approach.
+
+- **Sound stuck after interrupted fishing** — `UNIT_SPELLCAST_INTERRUPTED` did not fire any event that restored enhanced sound. Replaced direct module calls with `FK.Events:Fire("FISHING_MISSED")`/`"FISHING_FAILED"`; Alerts now subscribes to `FISHING_FAILED`.
 
 ### Removed
 
-- **Shattrath fishing daily quest tracker removed** — the feature was non-functional and has been removed entirely. This includes `modules/DailyQuests.lua`, the `dailyQuestReminder` setting, the DAILY QUESTS section in Config > Auto, and the `/fk daily` slash command.
-
-### Files Modified
-- `modules/DailyQuests.lua` — **deleted**
-- `Core.lua` — removed `dailyQuestReminder` default, DailyQuests initialization, and `daily` command registration
-- `modules/Config.lua` — removed DAILY QUESTS config section
-- `FishingKit.toc` — removed `modules\DailyQuests.lua`
-
----
-
-## v1.3.0-beta.1
+- **Shattrath fishing daily quest tracker removed** — the feature was non-functional and has been removed entirely.
 
 ### Internal Refactoring
 
@@ -22,30 +18,15 @@
 
 - **State getter functions** — Added `FK:GetZone()`, `FK:GetSubZone()`, `FK:IsFishing()`, `FK:GetCastStartTime()`, `FK:GetFishingSkill()`, and `FK:HasLure()`. All modules now read state through these getters instead of accessing `FK.State.*` fields directly.
 
-- **Named constants** — Magic numbers for loot delays and inventory slot numbers replaced with named locals (`LOOT_RELEASE_DELAY`, `LOOT_CONTAINER_DELAY`, `LOOT_LURE_DELAY`, `SLOT_MAINHAND`).
+- **Named constants** — Magic numbers for loot delays and inventory slot numbers replaced with named locals.
 
-- **`FK:ForEachBagSlot()` helper** — Bag iteration loops across Core.lua, Equipment.lua, and UI.lua consolidated into a single shared iterator.
+- **`FK:ForEachBagSlot()` helper** — Bag iteration loops consolidated into a single shared iterator.
 
-- **Spell event parameter names** — `UNIT_SPELLCAST_*` handlers renamed from `arg2..arg5` to `spellName, rank, lineID, spellID`.
+- **`StatsPanel.lua` extracted** — ~1000 lines of statistics window UI moved from `Statistics.lua` into a new `modules/StatsPanel.lua`.
 
-- **`TryRestorePole` extracted** — Combat pole-restore retry logic extracted from the `PLAYER_REGEN_ENABLED` handler into a named module-level function.
+- **`TryRestorePole` extracted** — Combat pole-restore retry logic extracted into a named function.
 
 - **UI.lua section headers** — Frame creation and runtime sections labeled with clear boundary comments.
-
-- **`StatsPanel.lua` extracted** — ~1000 lines of statistics window UI (tabs, scroll frame, five populate functions) moved from `Statistics.lua` into a new `modules/StatsPanel.lua`, keeping `Statistics.lua` focused on data and session logic.
-
-### Files Modified
-- `Core.lua` — FK.Events bus, state getters, named constants, ForEachBagSlot, TryRestorePole, bag loop updates
-- `modules/Alerts.lua` — subscribe via FK.Events, state getter replacements
-- `modules/Statistics.lua` — subscribe via FK.Events, state getter replacements, panel code extracted
-- `modules/StatsPanel.lua` — **new file**, extracted from Statistics.lua
-- `modules/Equipment.lua` — subscribe via FK.Events, state getter replacements, bag loop updates
-- `modules/UI.lua` — subscribe via FK.Events, state getter replacements, bag loop updates, section headers
-- `modules/Navigation.lua` — subscribe via FK.Events
-- `modules/Pools.lua` — subscribe via FK.Events, state getter replacements
-- `modules/ZoneFish.lua` — state getter replacement
-- `FishingKit.toc` — added `modules\StatsPanel.lua`
-- `.pkgmeta` — exclude CHANGELOG.md and README.md from packaged release
 
 ## v1.2.4
 
