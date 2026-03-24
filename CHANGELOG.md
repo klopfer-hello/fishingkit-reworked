@@ -1,5 +1,11 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.1
+
+*Re-release of v1.3.0 to trigger CurseForge stable upload (beta-to-stable tag conversion did not publish).*
+
+---
+
 ## v1.3.0
 
 ### Bug Fixes

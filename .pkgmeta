@@ -1,10 +1,8 @@
 package-as: FishingKit
 
-manual-changelog: CHANGELOG.md
-changelog-type: markdown
-
-curse-curse-description: README.md
-curse-curse-description-type: markdown
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
 
 ignore:
   - .claude
