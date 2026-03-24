@@ -741,20 +741,6 @@ function Config:CreateAutomationTab(parent)
     end, function() return FK.db.settings.autoFindFish end)
     yOffset = yOffset - ROW_HEIGHT * 1.5
 
-    yOffset = self:CreateSectionHeader(panel, "DAILY QUESTS", yOffset)
-
-    local dailyReminderCheck = self:CreateCheckbox(panel, "Remind about active fishing daily quest on login", yOffset, function(checked)
-        FK.db.settings.dailyQuestReminder = checked
-    end, function() return FK.db.settings.dailyQuestReminder end)
-    yOffset = yOffset - ROW_HEIGHT
-
-    local dailyBtn = self:CreateConfigButton(panel, "Show Daily Tracker", 140, 22)
-    dailyBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 22, yOffset)
-    dailyBtn:SetScript("OnClick", function()
-        if FK.DailyQuests then FK.DailyQuests:Toggle() end
-    end)
-    yOffset = yOffset - 28
-
     configState.frame.automationPanel = panel
 end
 

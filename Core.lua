@@ -156,9 +156,6 @@ local defaultDB = {
         -- Cycle fish alerts
         cycleFishAlerts = true,
 
-        -- Daily quest tracker
-        dailyQuestReminder = true,
-
         -- Statistics settings
         trackStats = true,
         trackLoot = true,
@@ -624,10 +621,6 @@ local function InitializeAddon()
 
     if FK.Config and FK.Config.Initialize then
         FK.Config:Initialize()
-    end
-
-    if FK.DailyQuests and FK.DailyQuests.Initialize then
-        FK.DailyQuests:Initialize()
     end
 
     if FK.AuctionHouse and FK.AuctionHouse.Initialize then
@@ -1495,15 +1488,6 @@ FK:RegisterCommand("backup", function(args)
         FK:GetBackupInfo()
     else
         FK:CreateBackup()
-    end
-end)
-
-FK:RegisterCommand("daily", function(args)
-    if not FK.DailyQuests then return end
-    if args == "print" then
-        FK.DailyQuests:PrintStatus()
-    else
-        FK.DailyQuests:Toggle()
     end
 end)
 

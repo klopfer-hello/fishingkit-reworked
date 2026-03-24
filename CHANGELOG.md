@@ -1,5 +1,19 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.0-beta.2
+
+### Removed
+
+- **Shattrath fishing daily quest tracker removed** — the feature was non-functional and has been removed entirely. This includes `modules/DailyQuests.lua`, the `dailyQuestReminder` setting, the DAILY QUESTS section in Config > Auto, and the `/fk daily` slash command.
+
+### Files Modified
+- `modules/DailyQuests.lua` — **deleted**
+- `Core.lua` — removed `dailyQuestReminder` default, DailyQuests initialization, and `daily` command registration
+- `modules/Config.lua` — removed DAILY QUESTS config section
+- `FishingKit.toc` — removed `modules\DailyQuests.lua`
+
+---
+
 ## v1.3.0-beta.1
 
 ### Internal Refactoring
@@ -29,7 +43,6 @@
 - `modules/UI.lua` — subscribe via FK.Events, state getter replacements, bag loop updates, section headers
 - `modules/Navigation.lua` — subscribe via FK.Events
 - `modules/Pools.lua` — subscribe via FK.Events, state getter replacements
-- `modules/DailyQuests.lua` — subscribe via FK.Events
 - `modules/ZoneFish.lua` — state getter replacement
 - `FishingKit.toc` — added `modules\StatsPanel.lua`
 - `.pkgmeta` — exclude CHANGELOG.md and README.md from packaged release
