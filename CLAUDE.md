@@ -121,6 +121,7 @@ Key files to reference:
 | (v1.2.4) | Zone Fish (%) panel stays visible after closing main window — `UI:Hide()` never hid it; `ZF:Hide()` method didn't exist (silent Lua error) | Added `ZF:Hide()` + `ZF:Show()` to ZoneFish.lua; `UI:Hide()` calls `FK.ZoneFish:Hide()` |
 | (v1.3.0) | `IsFishingSpell` always returned false for `CHANNEL_START`/`CHANNEL_STOP` — enhanced audio, cast timer, and state machine broken | TBC Anniversary uses modern `(unit, castGUID, spellID)` signature (spellID=arg3), not old `(unit, spellName, rank, lineID, spellID)` (spellID=arg5). Restored `arg5 or arg3` fallback in `IsFishingSpell` and all spell event handlers |
 | (v1.3.0) | `UNIT_SPELLCAST_INTERRUPTED` never restored enhanced sound or fired events | Replaced direct `FK.Statistics`/`FK.UI` calls with `FK.Events:Fire("FISHING_MISSED")`/`"FISHING_FAILED"`; Alerts now subscribes to `FISHING_FAILED` |
+| (v1.3.2) | Every catch counted twice — `LOOT_READY` fires twice per loot window | Added `_lootProcessed` guard in `OnLootReady`, cleared on `FISHING_COMPLETE` and `FISHING_MISSED` |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 

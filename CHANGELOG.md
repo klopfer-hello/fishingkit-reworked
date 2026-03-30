@@ -1,5 +1,17 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.2
+
+### Bug Fixes
+
+- **Catches double-counted** — `LOOT_READY` can fire twice for the same loot window (once for data-ready, once for auto-loot), causing every catch to be recorded twice. Added a `_lootProcessed` guard flag in `OnLootReady` that is cleared on `FISHING_COMPLETE` and `FISHING_MISSED`.
+
+### Files Modified
+
+- `modules/Statistics.lua` (loot-processed guard, `FISHING_COMPLETE` subscription)
+
+---
+
 ## v1.3.1
 
 *Re-release of v1.3.0 to trigger CurseForge stable upload (beta-to-stable tag conversion did not publish).*

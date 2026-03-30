@@ -62,7 +62,8 @@ function Stats:Initialize()
     -- Subscribe to fishing events
     FK.Events:On("FISHING_LOOT_READY",  function() Stats:OnLootReady() end)
     FK.Events:On("FISHING_LOOT_OPENED", function() Stats:RecordBiteTime() end)
-    FK.Events:On("FISHING_MISSED",      function() Stats:OnCastStart() end)
+    FK.Events:On("FISHING_COMPLETE",     function() Stats:OnLootClosed() end)
+    FK.Events:On("FISHING_MISSED",      function() Stats:OnLootClosed(); Stats:OnCastStart() end)
     FK.Events:On("FISHING_FAILED",      function() Stats:OnCastFailed() end)
     FK.Events:On("FISHING_SKILL_UP",    function() Stats:OnSkillUp() end)
     FK.Events:On("SESSION_ENDING",      function() Stats:SaveSession() end)
@@ -159,7 +160,15 @@ end
 function Stats:OnLootReady()
     -- LOOT_READY fires before auto-loot processes items, so GetNumLootItems() is reliable.
     -- Called only when IsFishingLoot() is true (checked in Core.lua).
+    -- Guard: LOOT_READY can fire twice for the same loot window (once for data-ready,
+    -- once for auto-loot). Flag is cleared in OnLootClosed / FISHING_MISSED.
     if not FK.db.settings.trackStats then return end
+
+    if self._lootProcessed then
+        FK:Debug("OnLootReady: already processed this loot window, skipping")
+        return
+    end
+    self._lootProcessed = true
 
     local numItems = GetNumLootItems()
     if numItems == 0 then
@@ -195,6 +204,7 @@ function Stats:OnLootReady()
 end
 
 function Stats:OnLootClosed()
+    self._lootProcessed = false
 end
 
 -- Update all fish-count tables (session, chardb, globalStats) for one caught item.
