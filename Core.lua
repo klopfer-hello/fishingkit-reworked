@@ -92,9 +92,33 @@ function FK.Events:Fire(event, ...)
     end
 end
 
--- Fishing spell IDs and names
+-- Fishing spell IDs — names resolved from GetSpellInfo for locale independence
 FK.FishingSpellID = 7620
-FK.FishingSpellName = "Fishing"
+FK.FishingSpellName = GetSpellInfo(7620) or "Fishing"  -- localized at load time
+FK.FindFishSpellID = 43308
+
+-- Locale-independent fishing pole detection via item class/subclass IDs
+-- Weapon class = 2, Fishing Pole subclass = 20
+-- Resolve the localized subtype string once; used as fallback when itemID isn't in our database
+FK.FishingPoleSubType = GetItemSubClassInfo and GetItemSubClassInfo(2, 20) or nil
+
+function FK:IsFishingPoleItem(itemLink)
+    if not itemLink then return false end
+    local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
+    if itemID and FK.Database and FK.Database.FishingPoles and FK.Database.FishingPoles[itemID] then
+        return true
+    end
+    local _, _, _, _, _, _, itemSubType = GetItemInfo(itemLink)
+    if not itemSubType then return false end
+    if FK.FishingPoleSubType then
+        return itemSubType == FK.FishingPoleSubType
+    end
+    -- Ultimate fallback: match against English strings (should never be needed)
+    return itemSubType == "Fishing Poles" or itemSubType == "Fishing Pole"
+end
+
+-- Resolve localized zone name for Stranglethorn Vale (mapID 224) for locale-independent STV check
+FK.STVZoneName = (C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(224) or {}).name or "Stranglethorn Vale"
 
 -- Inventory slot IDs (mirrors Equipment.lua locals; defined here for Core use)
 local SLOT_MAINHAND = 16
@@ -563,12 +587,9 @@ local function UpdateLureStatus()
     if hasMainHandEnchant then
         -- Check if the weapon is a fishing pole
         local mainHandLink = GetInventoryItemLink("player", SLOT_MAINHAND)
-        if mainHandLink then
-            local _, _, _, _, _, itemType, itemSubType = GetItemInfo(mainHandLink)
-            if itemSubType and (itemSubType == "Fishing Poles" or itemSubType == "Fishing Pole") then
-                hasLure = true
-                lureExpireTime = GetTime() + (mainHandExpiration / 1000)
-            end
+        if mainHandLink and FK:IsFishingPoleItem(mainHandLink) then
+            hasLure = true
+            lureExpireTime = GetTime() + (mainHandExpiration / 1000)
         end
     end
 
@@ -580,6 +601,14 @@ local function InitializeAddon()
     if FK.initialized then return end
 
     FK:Debug("Beginning initialization...")
+
+    -- Re-resolve localized names if they failed at load time (safety net)
+    if not FK.FishingSpellName or FK.FishingSpellName == "Fishing" then
+        FK.FishingSpellName = GetSpellInfo(FK.FishingSpellID) or FK.FishingSpellName or "Fishing"
+    end
+    if not FK.FishingPoleSubType then
+        FK.FishingPoleSubType = GetItemSubClassInfo and GetItemSubClassInfo(2, 20) or nil
+    end
 
     -- Initialize saved variables
     InitializeSavedVariables()
@@ -741,17 +770,15 @@ end
 -- Helper to check if spell is fishing (handles both event signatures)
 local function IsFishingSpell(arg2, arg3, arg4, arg5)
     local spellID = arg5 or arg3  -- arg5 for old TBC, arg3 for modern
+    -- Prefer spellID comparison (locale-independent)
+    if spellID == FK.FishingSpellID or spellID == 7620 then return true end
+    -- Fallback: resolve spellID to name, or use raw arg2
     local spellName = arg2
-
     if spellID and type(spellID) == "number" then
         local name = GetSpellInfo(spellID)
         if name then spellName = name end
     end
-
-    return (spellName == FK.FishingSpellName) or
-           (spellName == "Fishing") or
-           (spellID == FK.FishingSpellID) or
-           (spellID == 7620)
+    return spellName == FK.FishingSpellName
 end
 
 eventHandlers.UNIT_SPELLCAST_START = function(unit, arg2, arg3, arg4, arg5)
@@ -766,11 +793,8 @@ eventHandlers.UNIT_SPELLCAST_START = function(unit, arg2, arg3, arg4, arg5)
 
     FK:Debug("SPELLCAST_START spell=" .. tostring(spellName) .. " id=" .. tostring(spellID))
 
-    -- Check if this is a fishing cast
-    local isFishing = (spellName == FK.FishingSpellName) or
-                      (spellName == "Fishing") or
-                      (spellID == FK.FishingSpellID) or
-                      (spellID == 7620)
+    -- Check if this is a fishing cast (spellID is locale-independent)
+    local isFishing = IsFishingSpell(arg2, arg3, arg4, arg5)
 
     FK:Debug("isFishing=" .. tostring(isFishing) .. " FishingSpellName=" .. tostring(FK.FishingSpellName) .. " FishingSpellID=" .. tostring(FK.FishingSpellID))
 
@@ -1554,8 +1578,15 @@ function FK:IsContestActive()
 end
 
 function FK:IsInSTV()
+    -- Use mapID for locale-independent zone detection
+    -- 224 = Stranglethorn Vale (TBC Classic)
+    if C_Map and C_Map.GetBestMapForUnit then
+        local mapID = C_Map.GetBestMapForUnit("player")
+        return mapID == 224
+    end
+    -- Fallback: compare against localized zone name from C_Map
     local zone = FK.State.currentZone or ""
-    return zone == "Stranglethorn Vale" or zone == "Northern Stranglethorn" or zone == "The Cape of Stranglethorn"
+    return zone == FK.STVZoneName
 end
 
 function FK:GetTaskyfishCount()

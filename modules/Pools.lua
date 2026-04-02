@@ -933,7 +933,9 @@ function Pools:GetFindFishTrackingIndex()
     local numTypes = C_Minimap.GetNumTrackingTypes()
     for i = 1, numTypes do
         local info = C_Minimap.GetTrackingInfo(i)
-        if info and info.name and (info.name == "Find Fish" or string.find(info.name, "Find Fish")) then
+        -- Compare against localized spell name from GetSpellInfo for locale independence
+        local findFishName = GetSpellInfo(FK.FindFishSpellID) or "Find Fish"
+        if info and info.name and (info.name == findFishName) then
             return i, info.active
         end
     end

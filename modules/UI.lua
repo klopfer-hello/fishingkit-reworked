@@ -645,7 +645,7 @@ function UI:CreateButtons()
 
     -- Use type1/macrotext1 for left-click (TBC format)
     fishBtn:SetAttribute("type1", "macro")
-    fishBtn:SetAttribute("macrotext1", "/cast Fishing")
+    fishBtn:SetAttribute("macrotext1", "/cast " .. (FK.FishingSpellName or "Fishing"))
 
     -- Fishing skill text ABOVE the button
     local fishSkillText = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -1164,10 +1164,10 @@ function UI:UpdateCastBar()
 
     -- Use WoW API as source of truth, just like Blizzard's cast bar
     local channelName = UnitChannelInfo("player")
-    local apiSaysFishing = (channelName == "Fishing" or channelName == FK.FishingSpellName)
+    local apiSaysFishing = (channelName == FK.FishingSpellName)
     if not apiSaysFishing and UnitCastingInfo then
         local castName = UnitCastingInfo("player")
-        apiSaysFishing = (castName == "Fishing" or castName == FK.FishingSpellName)
+        apiSaysFishing = (castName == FK.FishingSpellName)
     end
 
     -- Self-heal: if WoW says we're fishing but stale events corrupted our state, fix it
@@ -2004,7 +2004,7 @@ local function DCInvoke()
 
     if not needLure then
         btn:SetAttribute("type", "spell")
-        btn:SetAttribute("spell", FK.FishingSpellName or "Fishing")
+        btn:SetAttribute("spell", FK.FishingSpellName)
         FK:Debug("DCInvoke: casting Fishing")
     end
 

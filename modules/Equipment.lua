@@ -54,17 +54,20 @@ function Equip:GetLureBonusFromTooltip()
 
     -- Scan tooltip lines for fishing bonus from lure (temporary enchant)
     -- Lure lines look like: "Fishing +75 (10 min)", "+75 Fishing Skill", etc.
-    -- We look for lines with both a number and timing info, or green-colored enchant text
+    -- Use localized spell name for pattern matching (e.g. "Angeln" in German)
+    local fishWord = FK.FishingSpellName or "Fishing"
     for i = 1, tooltip:NumLines() do
         local leftText = _G["FishingKitScanTooltipTextLeft" .. i]
         if leftText then
             local text = leftText:GetText()
             if text then
                 -- Check if this line mentions time remaining (indicates temporary enchant)
-                local hasTimeInfo = string.find(text, "min") or string.find(text, "sec")
+                -- Match locale-independently: look for parenthesized duration like "(10 min)" / "(10 Min)"
+                local hasTimeInfo = string.find(text, "%(%d+") or string.find(text, "%d+%s*[Mm]in")
+                        or string.find(text, "%d+%s*[Ss]e[ck]")
 
-                -- Pattern 1: "Fishing +75" or "Fishing Skill +75"
-                local bonus = string.match(text, "Fishing%D*%+?(%d+)")
+                -- Pattern 1: "<FishWord> +75" or "<FishWord> Skill +75"
+                local bonus = string.match(text, fishWord .. "%D*%+?(%d+)")
                 if bonus and hasTimeInfo then
                     local bonusNum = tonumber(bonus)
                     if bonusNum and bonusNum > 0 then
@@ -72,8 +75,8 @@ function Equip:GetLureBonusFromTooltip()
                     end
                 end
 
-                -- Pattern 2: "+75 Fishing"
-                bonus = string.match(text, "%+(%d+)%s*Fishing")
+                -- Pattern 2: "+75 <FishWord>"
+                bonus = string.match(text, "%+(%d+)%s*" .. fishWord)
                 if bonus and hasTimeInfo then
                     local bonusNum = tonumber(bonus)
                     if bonusNum and bonusNum > 0 then
@@ -87,7 +90,7 @@ function Equip:GetLureBonusFromTooltip()
                 local isGreen = (g > 0.9 and r < 0.5 and b < 0.5)
                 if isGreen then
                     bonus = string.match(text, "%+(%d+)")
-                    if bonus and string.find(text, "Fishing") then
+                    if bonus and string.find(text, fishWord) then
                         local bonusNum = tonumber(bonus)
                         if bonusNum and bonusNum >= 25 and bonusNum <= 100 then
                             return bonusNum
@@ -150,9 +153,8 @@ function Equip:ScanEquipment()
                 equipState.hasFishingPole = true
                 equipState.currentPoleBonus = poleData.bonus or 0
             else
-                -- Check if it's a fishing pole by item subtype
-                local _, _, _, _, _, itemType, itemSubType = GetItemInfo(mainHandLink)
-                if itemSubType and (itemSubType == "Fishing Poles" or itemSubType == "Fishing Pole") then
+                -- Check if it's a fishing pole by item subtype (locale-independent)
+                if FK:IsFishingPoleItem(mainHandLink) then
                     equipState.hasFishingPole = true
                 end
             end
@@ -213,14 +215,11 @@ function Equip:ScanLure()
         -- Check if main hand is a fishing pole (independent check)
         local hasPole = equipState.hasFishingPole
         if not hasPole then
-            -- Double-check by examining the weapon directly
+            -- Double-check by examining the weapon directly (locale-independent)
             local mainHandLink = GetInventoryItemLink("player", SLOT_MAINHAND)
-            if mainHandLink then
-                local _, _, _, _, _, _, itemSubType = GetItemInfo(mainHandLink)
-                if itemSubType and (itemSubType == "Fishing Poles" or itemSubType == "Fishing Pole") then
-                    hasPole = true
-                    equipState.hasFishingPole = true  -- Update the flag
-                end
+            if mainHandLink and FK:IsFishingPoleItem(mainHandLink) then
+                hasPole = true
+                equipState.hasFishingPole = true  -- Update the flag
             end
         end
 
@@ -308,9 +307,8 @@ function Equip:SaveNormalGear()
                 FK:Debug("WARNING: Fishing pole equipped - not overwriting normal gear")
                 return  -- Don't save fishing gear as normal gear
             end
-            -- Also check by subtype
-            local _, _, _, _, _, _, itemSubType = GetItemInfo(mainHand)
-            if itemSubType and (itemSubType == "Fishing Poles" or itemSubType == "Fishing Pole") then
+            -- Also check by subtype (locale-independent)
+            if FK:IsFishingPoleItem(mainHand) then
                 FK:Debug("WARNING: Fishing pole equipped (by subtype) - not overwriting normal gear")
                 return
             end
@@ -743,14 +741,11 @@ function Equip:GetLureInfo()
         -- Check if main hand is a fishing pole
         local hasPole = equipState.hasFishingPole
         if not hasPole then
-            -- Double-check by examining the weapon directly
+            -- Double-check by examining the weapon directly (locale-independent)
             local mainHandLink = GetInventoryItemLink("player", SLOT_MAINHAND)
-            if mainHandLink then
-                local _, _, _, _, _, _, itemSubType = GetItemInfo(mainHandLink)
-                if itemSubType and (itemSubType == "Fishing Poles" or itemSubType == "Fishing Pole") then
-                    hasPole = true
-                    equipState.hasFishingPole = true
-                end
+            if mainHandLink and FK:IsFishingPoleItem(mainHandLink) then
+                hasPole = true
+                equipState.hasFishingPole = true
             end
         end
 
@@ -815,8 +810,7 @@ function Equip:GetFishingPolesInBags()
                     name = poleData.name, bonus = poleData.bonus, link = itemLink,
                 })
             else
-                local _, _, _, _, _, _, itemSubType = GetItemInfo(itemLink)
-                if itemSubType and (itemSubType == "Fishing Poles" or itemSubType == "Fishing Pole") then
+                if FK:IsFishingPoleItem(itemLink) then
                     table.insert(poles, {
                         bag = bag, slot = slot, itemID = itemID,
                         name = itemLink, bonus = 0, link = itemLink,
