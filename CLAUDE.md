@@ -122,6 +122,8 @@ Key files to reference:
 | (v1.3.0) | `IsFishingSpell` always returned false for `CHANNEL_START`/`CHANNEL_STOP` — enhanced audio, cast timer, and state machine broken | TBC Anniversary uses modern `(unit, castGUID, spellID)` signature (spellID=arg3), not old `(unit, spellName, rank, lineID, spellID)` (spellID=arg5). Restored `arg5 or arg3` fallback in `IsFishingSpell` and all spell event handlers |
 | (v1.3.0) | `UNIT_SPELLCAST_INTERRUPTED` never restored enhanced sound or fired events | Replaced direct `FK.Statistics`/`FK.UI` calls with `FK.Events:Fire("FISHING_MISSED")`/`"FISHING_FAILED"`; Alerts now subscribes to `FISHING_FAILED` |
 | (v1.3.2) | Every catch counted twice — `LOOT_READY` fires twice per loot window | Added `_lootProcessed` guard in `OnLootReady`, cleared on `FISHING_COMPLETE` and `FISHING_MISSED` |
+| (v1.3.3) | PoolData: many Tanaris and other zone fishing pool coordinates placed inland instead of on the coastline | Corrected coordinates across 18 zones; removed inland entries and added GatherMate2-verified coastal positions |
+| (v1.3.3) | `MergePoolData` only added entries, never pruned stale ones — removed/corrected static entries persisted in SavedVariables forever | Added pruning step: entries with `timesSeen=0` that no longer match static data are removed on load |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 

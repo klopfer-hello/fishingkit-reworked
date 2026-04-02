@@ -147,6 +147,36 @@ function Pools:MergePoolData()
     if merged > 0 then
         FK:Debug("Merged " .. merged .. " static pool locations from PoolData")
     end
+
+    -- Prune saved entries that were never seen in-game and no longer exist in static data
+    local pruned = 0
+    for mapID, saved in pairs(FK.db.poolLocations) do
+        local staticPools = FK.PoolData[mapID]
+        if staticPools then
+            for i = #saved, 1, -1 do
+                local entry = saved[i]
+                if entry.timesSeen == 0 then
+                    local inStatic = false
+                    for _, sp in ipairs(staticPools) do
+                        local dx = math.abs(sp.x - entry.x)
+                        local dy = math.abs(sp.y - entry.y)
+                        if dx < DEDUP_DISTANCE and dy < DEDUP_DISTANCE then
+                            inStatic = true
+                            break
+                        end
+                    end
+                    if not inStatic then
+                        table.remove(saved, i)
+                        pruned = pruned + 1
+                    end
+                end
+            end
+        end
+    end
+
+    if pruned > 0 then
+        FK:Debug("Pruned " .. pruned .. " stale pool locations not in static data")
+    end
 end
 
 -- ============================================================================

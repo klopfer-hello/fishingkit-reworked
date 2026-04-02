@@ -493,22 +493,23 @@ FK.PoolData[1425] = {
 --        Floating Wreckage (all share same coastal spawn points)
 -- ============================================================================
 FK.PoolData[1446] = {
+    -- South coast
     {name="Stonescale Eel Swarm", x=0.484, y=0.858},
     {name="Stonescale Eel Swarm", x=0.506, y=0.914},
-    {name="Oily Blackmouth School", x=0.533, y=0.333},
-    {name="Firefin Snapper School", x=0.536, y=0.392},
     {name="Stonescale Eel Swarm", x=0.536, y=0.955},
-    {name="Oily Blackmouth School", x=0.540, y=0.266},
-    {name="Firefin Snapper School", x=0.553, y=0.436},
     {name="Stonescale Eel Swarm", x=0.566, y=0.920},
-    {name="Oily Blackmouth School", x=0.585, y=0.440},
     {name="Stonescale Eel Swarm", x=0.594, y=0.864},
     {name="Stonescale Eel Swarm", x=0.599, y=0.798},
-    {name="Firefin Snapper School", x=0.626, y=0.429},
+    -- East coast
     {name="Floating Wreckage", x=0.636, y=0.621},
     {name="Floating Wreckage", x=0.647, y=0.592},
     {name="Oily Blackmouth School", x=0.674, y=0.566},
     {name="Firefin Snapper School", x=0.677, y=0.405},
+    -- Steamwheedle Port area (GatherMate2 verified)
+    {name="Floating Wreckage", x=0.677, y=0.210},
+    {name="Firefin Snapper School", x=0.674, y=0.249},
+    {name="Firefin Snapper School", x=0.680, y=0.234},
+    {name="Floating Wreckage", x=0.686, y=0.230},
     {name="Oily Blackmouth School", x=0.712, y=0.533},
     {name="Firefin Snapper School", x=0.720, y=0.433},
     {name="Oily Blackmouth School", x=0.730, y=0.485},

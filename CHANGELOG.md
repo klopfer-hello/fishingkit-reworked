@@ -1,5 +1,19 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.3
+
+### Bug Fixes
+
+- **Incorrect fishing pool coordinates** — Corrected pool spawn coordinates across 18 zones (Tanaris, Azshara, Stranglethorn Vale, Feralas, The Hinterlands, Felwood, Western Plaguelands, Moonglade, Un'Goro Crater, Eastern Plaguelands, Burning Steppes, Winterspring, Deadwind Pass, Silithus, Scholomance, Stratholme, Zul'Gurub, and more). Removed inland entries and added GatherMate2-verified coastal positions.
+- **Stale pool data persisted forever** — `MergePoolData` only added static entries to SavedVariables but never removed them when the static data was corrected. Added a pruning step that removes entries with `timesSeen=0` that no longer match any static PoolData entry.
+
+### Files Modified
+
+- `modules/PoolData.lua` (corrected coordinates across 18 zones)
+- `modules/Pools.lua` (added stale entry pruning in `MergePoolData`)
+
+---
+
 ## v1.3.2
 
 ### Bug Fixes

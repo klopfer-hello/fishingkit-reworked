@@ -14,7 +14,7 @@ Fork of the original [FishingKit](https://www.curseforge.com/wow/addons/fishingk
 - Zone database with skill requirements and catch rates
 - Pool detection with minimap and world map pins
 - Pool route navigation with TomTom-style arrow
-- Pre-filled database with 653 known pool spawn locations
+- Pre-filled database with 652 known pool spawn locations
 - Bite confidence band on the cast bar
 - STV Fishing Extravaganza contest tracker
 - Fishing goals, catch & release, and auto-open containers
