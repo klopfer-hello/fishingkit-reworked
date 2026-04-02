@@ -48,18 +48,18 @@ DB.Fish = {
     -- Mid-Level Fish (75-225 zones)
     [6358]  = { name = "Raw Bristle Whisker Catfish", quality = DB.Quality.COMMON, minSkill = 100, zone = "Redridge, Duskwood, Ashenvale, Hillsbrad" },
     [4603]  = { name = "Raw Spotted Yellowtail", quality = DB.Quality.COMMON, minSkill = 175, zone = "Stranglethorn Vale, Tanaris, Feralas" },
-    [6362]  = { name = "Raw Redgill", quality = DB.Quality.COMMON, minSkill = 150, zone = "Alterac, Arathi, Stranglethorn" },
+    [6362]  = { name = "Raw Rockscale Cod", quality = DB.Quality.COMMON, minSkill = 150, zone = "Alterac, Arathi, Stranglethorn, Tanaris, Feralas, Azshara" },
     [8365]  = { name = "Raw Mithril Head Trout", quality = DB.Quality.COMMON, minSkill = 175, zone = "Arathi, Alterac, Hillsbrad" },
 
     -- High-Level Fish (225-300 zones)
     [13754] = { name = "Raw Glossy Mightfish", quality = DB.Quality.COMMON, minSkill = 225, zone = "Azshara, Tanaris, Feralas" },
     [13755] = { name = "Winter Squid", quality = DB.Quality.COMMON, minSkill = 225, seasonal = "winter", zone = "Azshara, Tanaris, Feralas, Hinterlands" },
     [13756] = { name = "Raw Summer Bass", quality = DB.Quality.COMMON, minSkill = 225, seasonal = "summer", zone = "Azshara, Tanaris, Feralas, Hinterlands" },
-    [13757] = { name = "Lightning Eel", quality = DB.Quality.UNCOMMON, minSkill = 250, zone = "Azshara, Tanaris, Feralas, Hinterlands" },
+    [13757] = { name = "Lightning Eel", quality = DB.Quality.UNCOMMON, minSkill = 250, zone = "Feralas, Azshara, Hinterlands, Felwood, Western Plaguelands, Eastern Plaguelands, Moonglade" },
     [13758] = { name = "Raw Redgill", quality = DB.Quality.COMMON, minSkill = 225, zone = "Azshara, Felwood, Hinterlands" },
     [13759] = { name = "Raw Nightfin Snapper", quality = DB.Quality.COMMON, minSkill = 225, timeWindow = "night", zone = "Moonglade, Felwood, Un'Goro, Western Plaguelands" },
     [13760] = { name = "Raw Sunscale Salmon", quality = DB.Quality.COMMON, minSkill = 225, timeWindow = "day", zone = "Moonglade, Felwood, Un'Goro, Western Plaguelands" },
-    [13888] = { name = "Darkclaw Lobster", quality = DB.Quality.COMMON, minSkill = 225, zone = "Azshara, Tanaris, Feralas" },
+    [13888] = { name = "Darkclaw Lobster", quality = DB.Quality.COMMON, minSkill = 225, zone = "Azshara, Blasted Lands, Swamp of Sorrows" },
     [13889] = { name = "Raw Whitescale Salmon", quality = DB.Quality.COMMON, minSkill = 275, zone = "Eastern Plaguelands, Winterspring, Burning Steppes" },
     [13893] = { name = "Large Raw Mightfish", quality = DB.Quality.COMMON, minSkill = 300, zone = "Azshara (Bay of Storms)" },
 
@@ -564,7 +564,7 @@ DB.Zones = {
         continent = "Kalimdor",
         minSkill = 205,
         noGetaway = 300,
-        fish = { 4603, 6360, 13754, 13755, 13756, 13757, 13888, 13422 },
+        fish = { 4603, 6360, 6362, 13754, 13755, 13756, 13422 },
         pools = { "Oily Blackmouth School", "Firefin Snapper School", "Floating Wreckage", "Stonescale Eel Swarm" },
     },
 
