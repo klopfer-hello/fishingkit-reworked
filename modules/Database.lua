@@ -548,7 +548,7 @@ DB.Zones = {
         continent = "Kalimdor",
         minSkill = 205,
         noGetaway = 300,
-        fish = { 13758, 13759, 13760 },
+        fish = { 13757, 13758, 13759, 13760 },
         pools = {},
     },
 
