@@ -1,5 +1,30 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.4
+
+### Bug Fixes
+
+- **Addon broken on non-English WoW clients** — All spell names, item subtypes, zone names, and tracking names were hardcoded in English (e.g. "Fishing", "Find Fish", "Stranglethorn Vale", "Fishing Poles"), causing the addon to silently fail on localized clients (German "Angeln", etc.). Replaced all hardcoded strings with locale-independent API lookups:
+  - Fishing spell name resolved dynamically via `GetSpellInfo(7620)`
+  - Fishing pole detection via `GetItemSubClassInfo(2, 20)` + centralized `FK:IsFishingPoleItem()` helper
+  - Double-click cast, macro button, and cast bar use localized spell name
+  - Find Fish tracking lookup uses `GetSpellInfo(43308)` instead of English string
+  - STV Fishing Extravaganza detection uses `C_Map` mapID (224) instead of English zone names
+  - Lure tooltip scanning patterns use localized fishing spell name
+
+### Files Modified
+
+- `Core.lua` (localized spell/zone resolution, `IsFishingPoleItem()`, `IsFishingSpell()` cleanup, `IsInSTV()` mapID check)
+- `modules/Equipment.lua` (replaced all English `"Fishing Pole(s)"` checks with `FK:IsFishingPoleItem()`, localized lure tooltip patterns)
+- `modules/Pools.lua` (Find Fish tracking uses localized spell name)
+- `modules/UI.lua` (cast button, cast bar, double-click use `FK.FishingSpellName`)
+
+### Credits
+
+- Thanks to Reddit user **u/S4ntaS4m** for reporting the localization issues and testing the fix.
+
+---
+
 ## v1.3.3
 
 ### Bug Fixes

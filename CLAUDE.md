@@ -124,6 +124,7 @@ Key files to reference:
 | (v1.3.2) | Every catch counted twice — `LOOT_READY` fires twice per loot window | Added `_lootProcessed` guard in `OnLootReady`, cleared on `FISHING_COMPLETE` and `FISHING_MISSED` |
 | (v1.3.3) | PoolData: many Tanaris and other zone fishing pool coordinates placed inland instead of on the coastline | Corrected coordinates across 18 zones; removed inland entries and added GatherMate2-verified coastal positions |
 | (v1.3.3) | `MergePoolData` only added entries, never pruned stale ones — removed/corrected static entries persisted in SavedVariables forever | Added pruning step: entries with `timesSeen=0` that no longer match static data are removed on load |
+| (v1.3.4) | All spell names, item subtypes, zone names, and tracking names hardcoded in English — addon broken on non-English clients | Resolved `FishingSpellName` via `GetSpellInfo(7620)`, detect poles via `GetItemSubClassInfo(2,20)` + `FK:IsFishingPoleItem()`, STV via mapID 224, Find Fish via `GetSpellInfo(43308)`, lure tooltips via localized patterns |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 
@@ -142,6 +143,8 @@ Key files to reference:
 - **`UseContainerItem(bag, slot)`** — the legacy global does not exist on TBC Classic Anniversary; it is shimmed in Core.lua to `C_Container.UseContainerItem`. Works outside combat for opening containers.
 - **`GLOBAL_MOUSE_DOWN`** — WoW event available in TBC Classic Anniversary. Fires with `arg1 = "RightButton"` (etc.) before click events are dispatched to frames. Setting `SetOverrideBindingClick` inside this handler takes effect for the current mouse-down event. `WorldFrame:HookScript("OnMouseDown")` fires too late — the input has already been dispatched.
 - **`SecureActionButtonTemplate` + `type=macro` + `macrotext`** — use `/use bag slot\n/use 16` macrotext to apply a lure and target the fishing pole slot in one secure click. The `target-slot` attribute for `type=item` is not required in TBC Classic when using macrotext instead.
+- **`GetItemSubClassInfo(classID, subClassID)`** — returns the localized subclass name string. `GetItemSubClassInfo(2, 20)` returns the localized name for "Fishing Poles" (Weapon class 2, subclass 20). Available in TBC Classic Anniversary.
+- **`C_Map.GetBestMapForUnit("player")`** — returns the mapID for the player's current zone. Use mapID comparisons instead of English zone name strings for locale independence (e.g. mapID 224 = Stranglethorn Vale).
 
 ## Coding Conventions
 

@@ -21,6 +21,7 @@ Fork of the original [FishingKit](https://www.curseforge.com/wow/addons/fishingk
 - Tooltip enrichment with catch data and AH prices
 - Key bindings for all major actions
 - Automatic SavedVariables backups
+- Full localization support — works on all WoW client languages
 
 ## Slash Commands
 
