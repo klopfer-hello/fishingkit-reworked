@@ -65,7 +65,7 @@ DB.Fish = {
 
     -- Reagent Fish (Alchemy)
     [6359]  = { name = "Oily Blackmouth", quality = DB.Quality.COMMON, minSkill = 55, reagent = true, zone = "Darkshore, Westfall, Silverpine, Loch Modan, The Barrens" },
-    [6360]  = { name = "Firefin Snapper", quality = DB.Quality.COMMON, minSkill = 130, reagent = true, zone = "Wetlands, Stonetalon, Desolace, Dustwallow, Stranglethorn" },
+    [6360]  = { name = "Firefin Snapper", quality = DB.Quality.COMMON, minSkill = 130, reagent = true, zone = "Wetlands, Stonetalon, Desolace, Dustwallow, Stranglethorn, Tanaris, Azshara, Feralas" },
     [13422] = { name = "Stonescale Eel", quality = DB.Quality.UNCOMMON, minSkill = 275, reagent = true, zone = "Tanaris, Azshara, Hinterlands" },
 
     -- Sagefish
@@ -564,8 +564,8 @@ DB.Zones = {
         continent = "Kalimdor",
         minSkill = 205,
         noGetaway = 300,
-        fish = { 13754, 13755, 13756, 13757, 13888, 13422 },
-        pools = { "Floating Wreckage", "Schooner Wreckage", "Waterlogged Wreckage Pool", "Stonescale Eel Swarm" },
+        fish = { 4603, 6360, 13754, 13755, 13756, 13757, 13888, 13422 },
+        pools = { "Oily Blackmouth School", "Firefin Snapper School", "Floating Wreckage", "Stonescale Eel Swarm" },
     },
 
     ["Un'Goro Crater"] = {
@@ -808,7 +808,7 @@ DB.Pools = {
         minSkill = 130,
         spawnTime = 300,
         reagent = true,
-        zone = "Wetlands, Stonetalon Mountains, Desolace, Dustwallow Marsh, Stranglethorn Vale",
+        zone = "Wetlands, Stonetalon Mountains, Desolace, Dustwallow Marsh, Stranglethorn Vale, Tanaris, Azshara, Feralas",
     },
 
     ["Greater Sagefish School"] = {
@@ -823,7 +823,7 @@ DB.Pools = {
         minSkill = 55,
         spawnTime = 300,
         reagent = true,
-        zone = "Darkshore, Silverpine Forest, Westfall, Loch Modan, The Barrens",
+        zone = "Darkshore, Silverpine Forest, Westfall, Loch Modan, The Barrens, Tanaris, Azshara, Feralas",
     },
 
     ["Sagefish School"] = {
@@ -872,7 +872,7 @@ DB.Pools = {
         minSkill = 1,
         spawnTime = 600,
         treasure = true,
-        zone = "Stranglethorn Vale, Tanaris",
+        zone = "Stranglethorn Vale",
     },
 
     ["Waterlogged Wreckage Pool"] = {
@@ -881,7 +881,7 @@ DB.Pools = {
         minSkill = 1,
         spawnTime = 600,
         treasure = true,
-        zone = "Stranglethorn Vale, Tanaris, Feralas",
+        zone = "Stranglethorn Vale, Feralas",
     },
 
     ["Bloodsail Wreckage Pool"] = {
