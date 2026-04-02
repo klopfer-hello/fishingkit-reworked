@@ -644,7 +644,7 @@ DB.Zones = {
         continent = "Eastern Kingdoms",
         minSkill = 330,
         noGetaway = 425,
-        fish = { 13889, 13759, 13760 },
+        fish = { 13757, 13758, 13759, 13760, 13889 },
         pools = {},
         instance = true,
     },
