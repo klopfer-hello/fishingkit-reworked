@@ -461,7 +461,7 @@ DB.Zones = {
         continent = "Eastern Kingdoms",
         minSkill = 130,
         noGetaway = 225,
-        fish = { 4603, 6359, 6360, 13754, 13422, 13757, 13888 },
+        fish = { 4603, 6359, 6360, 6362, 13754, 13422 },
         pools = { "Firefin Snapper School", "Oily Blackmouth School", "Floating Wreckage", "Stonescale Eel Swarm", "School of Tastyfish", "Floating Wreckage Pool", "Schooner Wreckage", "Waterlogged Wreckage Pool", "Bloodsail Wreckage Pool", "Oil Spill", "Greater Sagefish School", "Mixed Ocean School" },
         contest = true,
     },
