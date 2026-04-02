@@ -524,8 +524,8 @@ DB.Zones = {
         continent = "Kalimdor",
         minSkill = 205,
         noGetaway = 300,
-        fish = { 13754, 13755, 13756, 13757, 13888 },
-        pools = { "Floating Wreckage", "Waterlogged Wreckage Pool" },
+        fish = { 4603, 6360, 6362, 13754, 13755, 13756, 13757, 13758, 13422 },
+        pools = { "Oily Blackmouth School", "Firefin Snapper School", "Floating Wreckage", "Stonescale Eel Swarm" },
     },
 
     ["The Hinterlands"] = {
