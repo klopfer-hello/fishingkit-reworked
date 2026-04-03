@@ -125,6 +125,7 @@ Key files to reference:
 | (v1.3.3) | PoolData: many Tanaris and other zone fishing pool coordinates placed inland instead of on the coastline | Corrected coordinates across 18 zones; removed inland entries and added GatherMate2-verified coastal positions |
 | (v1.3.3) | `MergePoolData` only added entries, never pruned stale ones — removed/corrected static entries persisted in SavedVariables forever | Added pruning step: entries with `timesSeen=0` that no longer match static data are removed on load |
 | (v1.3.4) | All spell names, item subtypes, zone names, and tracking names hardcoded in English — addon broken on non-English clients | Resolved `FishingSpellName` via `GetSpellInfo(7620)`, detect poles via `GetItemSubClassInfo(2,20)` + `FK:IsFishingPoleItem()`, STV via mapID 224, Find Fish via `GetSpellInfo(43308)`, lure tooltips via localized patterns |
+| (v1.3.5) | Config sliders (UI Scale, SFX Volume, Arrival Distance) not draggable — native `Slider` frame doesn't receive mouse drag in TBC Classic Anniversary | Replaced native `Slider` with manual hit-area Frame + `OnMouseDown`/`OnUpdate` cursor tracking in `CreateSlider` |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 

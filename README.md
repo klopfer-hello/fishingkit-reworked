@@ -1,8 +1,18 @@
+<![CDATA[<p align="center">
+  <img src="media/logo.png" alt="Extreme FishingKit" width="200">
+</p>
+
 # Extreme FishingKit
 
 A comprehensive fishing companion addon for WoW TBC Classic Anniversary Edition.
 
 Fork of the original [FishingKit](https://www.curseforge.com/wow/addons/fishingkit-tbc-anniversary-edition) — all credit for the original work goes to the original author.
+
+## Screenshots
+
+| Main HUD | Statistics | Settings |
+|:---:|:---:|:---:|
+| ![Main HUD](media/screenshot_main.png) | ![Statistics](media/screenshot_stats.png) | ![Settings](media/screenshot_config.png) |
 
 ## Features
 
@@ -42,3 +52,10 @@ Fork of the original [FishingKit](https://www.curseforge.com/wow/addons/fishingk
 | `/fk reset stats` / `position` | Reset statistics or UI position |
 | `/fk lock` / `unlock` | Lock/unlock UI position |
 | `/fk scale [0.5-2.0]` | Set UI scale |
+
+## Compatibility
+
+- **Game version**: TBC Classic Anniversary (2.5.5)
+- **Interface version**: 20505
+- **Addon version**: 1.3.5
+]]>

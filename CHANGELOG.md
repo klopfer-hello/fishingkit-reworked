@@ -1,5 +1,17 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.5
+
+### Bug Fixes
+
+- **Config sliders not draggable** — Native WoW `Slider` frame does not receive mouse drag input in TBC Classic Anniversary. Replaced with manual mouse-input approach: invisible hit-area Frame with `OnMouseDown`/`OnMouseUp`/`OnUpdate` scripts that track cursor position and map it to slider values. Affects the UI Scale, SFX Volume, and Arrival Distance sliders.
+
+### Files Modified
+
+- `modules/Config.lua` (`CreateSlider` rewritten to use manual drag input instead of native `Slider` frame)
+
+---
+
 ## v1.3.4
 
 ### Bug Fixes
