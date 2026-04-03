@@ -1,5 +1,17 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.6
+
+### Bug Fixes
+
+- **README.md broken by XML CDATA tags** — Previous release accidentally wrapped the entire README content in `<![CDATA[` / `]]>` XML tags, breaking rendering on GitHub and CurseForge.
+
+### Files Modified
+
+- `README.md` (removed CDATA wrapper tags)
+
+---
+
 ## v1.3.5
 
 ### Bug Fixes

@@ -1,4 +1,4 @@
-<![CDATA[<p align="center">
+<p align="center">
   <img src="media/logo.png" alt="Extreme FishingKit" width="200">
 </p>
 
@@ -57,5 +57,4 @@ Fork of the original [FishingKit](https://www.curseforge.com/wow/addons/fishingk
 
 - **Game version**: TBC Classic Anniversary (2.5.5)
 - **Interface version**: 20505
-- **Addon version**: 1.3.5
-]]>
+- **Addon version**: 1.3.6
