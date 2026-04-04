@@ -1665,4 +1665,29 @@ BINDING_NAME_FISHINGKIT_LURE = "Apply Lure (Info)"
 BINDING_NAME_FISHINGKIT_STATS = "Toggle Statistics"
 BINDING_NAME_FISHINGKIT_CONFIG = "Toggle Settings"
 
+-- ============================================================================
+-- LibDataBroker Launcher (ElvUI DataText support)
+-- ============================================================================
+
+local ldb = LibStub and LibStub("LibDataBroker-1.1", true)
+if ldb then
+    ldb:NewDataObject("Extreme FishingKit", {
+        type  = "launcher",
+        label = "FishingKit",
+        icon  = "Interface\\Icons\\INV_Fishingpole_02",
+        OnClick = function(_, button)
+            if button == "LeftButton" then
+                if FK.UI and FK.UI.Toggle then FK.UI:Toggle() end
+            elseif button == "RightButton" then
+                if FK.Config and FK.Config.Toggle then FK.Config:Toggle() end
+            end
+        end,
+        OnTooltipShow = function(tt)
+            tt:AddLine("Extreme FishingKit")
+            tt:AddLine("|cff999999Left-click:|r Toggle panel")
+            tt:AddLine("|cff999999Right-click:|r Settings")
+        end,
+    })
+end
+
 FK:Debug("Core module loaded")
