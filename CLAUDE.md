@@ -127,6 +127,8 @@ Key files to reference:
 | (v1.3.4) | All spell names, item subtypes, zone names, and tracking names hardcoded in English — addon broken on non-English clients | Resolved `FishingSpellName` via `GetSpellInfo(7620)`, detect poles via `GetItemSubClassInfo(2,20)` + `FK:IsFishingPoleItem()`, STV via mapID 224, Find Fish via `GetSpellInfo(43308)`, lure tooltips via localized patterns |
 | (v1.3.5) | Config sliders (UI Scale, SFX Volume, Arrival Distance) not draggable — native `Slider` frame doesn't receive mouse drag in TBC Classic Anniversary | Replaced native `Slider` with manual hit-area Frame + `OnMouseDown`/`OnUpdate` cursor tracking in `CreateSlider` |
 | (v1.3.6) | README.md broken — `<![CDATA[` / `]]>` XML wrapper tags leaked into file content | Removed stray XML tags from README |
+| (v1.3.7) | Auto-open containers broken — `UseContainerItem` was `nil` because the C_Container shim only ran when `GetContainerNumSlots` was missing; on TBC Anniversary the other legacy globals exist but `UseContainerItem` does not | Added standalone fallback: `if not UseContainerItem and C_Container then UseContainerItem = C_Container.UseContainerItem end` |
+| (v1.3.7) | Auto-open failed during fishing recast — `UseContainerItem` silently fails when player is channeling (can't open loot window during a channel) | `AutoOpenContainers` now checks `UnitChannelInfo("player")` before each open and defers with retry until channel ends |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 

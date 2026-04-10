@@ -1,5 +1,28 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.7
+
+### Bug Fixes
+
+- **Auto-open containers broken** — `UseContainerItem` was `nil` because the `C_Container` shim in Core.lua only ran when `GetContainerNumSlots` was missing. On TBC Classic Anniversary, the other legacy container globals exist while `UseContainerItem` specifically does not. Added a standalone fallback to ensure it is always mapped.
+- **Auto-open failed during fishing recast** — `AutoOpenContainers` now checks `UnitChannelInfo("player")` before each open attempt. If the player is channeling (e.g. double-click recast), it defers and retries until the channel ends (up to ~6 seconds).
+
+### New Features
+
+- **Bloated Barbed Gill Trout** (ID 35313) added to the auto-open container list.
+
+### Improvements
+
+- **Debug output cleanup** — Removed ~110 verbose debug lines across 13 files. Remaining output focuses on error conditions, state machine gen mismatches, catch recording, AH scan summaries, and combat swap details.
+
+### Files Modified
+
+- `Core.lua` (UseContainerItem fallback shim, debug cleanup)
+- `modules/UI.lua` (channel-aware AutoOpenContainers, Bloated Barbed Gill Trout in OPENABLE_ITEMS, debug cleanup)
+- `modules/Alerts.lua`, `modules/AuctionHouse.lua`, `modules/Config.lua`, `modules/Database.lua`, `modules/Equipment.lua`, `modules/Navigation.lua`, `modules/PoolData.lua`, `modules/Pools.lua`, `modules/Statistics.lua`, `modules/StatsPanel.lua`, `modules/ZoneFish.lua` (debug cleanup)
+
+---
+
 ## v1.3.6
 
 ### Bug Fixes

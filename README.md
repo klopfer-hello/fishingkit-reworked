@@ -57,4 +57,4 @@ Fork of the original [FishingKit](https://www.curseforge.com/wow/addons/fishingk
 
 - **Game version**: TBC Classic Anniversary (2.5.5)
 - **Interface version**: 20505
-- **Addon version**: 1.3.6
+- **Addon version**: 1.3.7
