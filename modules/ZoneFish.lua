@@ -256,7 +256,4 @@ end
 
 function ZF:Initialize()
     self:CreatePanel()
-    FK:Debug("ZoneFish module initialized")
 end
-
-FK:Debug("ZoneFish module loaded")

@@ -127,7 +127,6 @@ function UI:Initialize()
     FK.Events:On("EQUIPMENT_CHANGED",    function() UI:OnEquipmentChanged() end)
     FK.Events:On("AUTO_OPEN_CONTAINERS", function() UI:AutoOpenContainers() end)
 
-    FK:Debug("UI module initialized")
 end
 
 -- ============================================================================
@@ -1777,7 +1776,6 @@ function UI:CreateMinimapButton()
         btn:Hide()
     end
 
-    FK:Debug("Minimap button created")
 end
 
 function UI:ShowMinimapButton()
@@ -2021,7 +2019,6 @@ local function DCInvoke()
                 local macrotext = "/use " .. bestLure.bag .. " " .. bestLure.slot .. "\n/use 16"
                 btn:SetAttribute("type", "macro")
                 btn:SetAttribute("macrotext", macrotext)
-                FK:Debug("DCInvoke: applying lure " .. bestLure.name .. " via macro")
             end
         end
     end
@@ -2029,7 +2026,6 @@ local function DCInvoke()
     if not needLure then
         btn:SetAttribute("type", "spell")
         btn:SetAttribute("spell", FK.FishingSpellName)
-        FK:Debug("DCInvoke: casting Fishing")
     end
 
     SetOverrideBindingClick(btn, true, "BUTTON2", "FishingKitSAButton")
@@ -2058,8 +2054,6 @@ function UI:SetupDoubleClickCast()
             dcLastClickTime = now
 
             if delay > 0.05 and delay < 0.4 then
-                FK:Debug("Double-click detected (delay=" .. string.format("%.3f", delay) .. ")")
-
                 if IsMouselooking() then
                     MouselookStop()
                 end
@@ -2075,7 +2069,6 @@ function UI:SetupDoubleClickCast()
         end
     end)
 
-    FK:Debug("Double-click casting setup complete")
 end
 
 -- No-ops for any leftover calls in Core.lua
@@ -2083,4 +2076,3 @@ function UI:ExtendDoubleClick() end
 function UI:OnFishingLootClosed() end
 function UI:OnFishingCastStarted() end
 
-FK:Debug("UI module loaded")

@@ -68,7 +68,6 @@ function Stats:Initialize()
     FK.Events:On("FISHING_SKILL_UP",    function() Stats:OnSkillUp() end)
     FK.Events:On("SESSION_ENDING",      function() Stats:SaveSession() end)
 
-    FK:Debug("Statistics module initialized")
 end
 
 -- ============================================================================
@@ -109,7 +108,6 @@ function Stats:OnCastStart()
         end
     end
 
-    FK:Debug("Cast recorded. Session casts: " .. sessionData.casts)
 end
 
 function Stats:UndoCastCount()
@@ -137,7 +135,6 @@ function Stats:UndoCastCount()
         end
     end
 
-    FK:Debug("Cast undone (interrupted). Session casts: " .. sessionData.casts)
 end
 
 function Stats:OnCastFailed()
@@ -148,7 +145,6 @@ function Stats:OnCastFailed()
         FK.chardb.stats.totalGotAway = (FK.chardb.stats.totalGotAway or 0) + 1
     end
 
-    FK:Debug("Cast failed/fish got away")
 end
 
 -- ============================================================================
@@ -285,7 +281,6 @@ function Stats:RecordCatch(lootData)
         if FK.chardb and FK.chardb.stats then
             FK.chardb.stats.totalJunk = (FK.chardb.stats.totalJunk or 0) + 1
         end
-        FK:Debug("Junk recorded: " .. itemName)
     else
         sessionData.catches = sessionData.catches + 1
         if FK.chardb and FK.chardb.stats then
@@ -306,7 +301,6 @@ function Stats:RecordCatch(lootData)
         self:RecordEfficiencyBucket()
         if FK.db and FK.db.settings.milestones then self:CheckMilestone() end
 
-        FK:Debug("Catch recorded: " .. itemName .. " x" .. quantity)
     end
 
     TrackGoldValue(lootData, itemID, quantity)
@@ -452,7 +446,6 @@ end
 -- Starts the fishing-time clock for the new session.
 function Stats:OnFishingGearEquipped()
     sessionData.fishingPoleEquipTime = GetTime()
-    FK:Debug("Fishing gear equipped - session timer started")
 end
 
 -- Called by Equipment module when fishing pole is unequipped.
@@ -467,7 +460,6 @@ function Stats:OnFishingGearUnequipped()
     self:SaveSession()
     -- Reset so the next equip starts a fresh session
     self:ResetSession()
-    FK:Debug("Fishing gear unequipped - session saved and reset")
 end
 
 function Stats:ResetStats()
@@ -712,7 +704,6 @@ function Stats:RecordBiteTime()
     -- Invalidate the cache for this zone so GetBiteConfidence recomputes on next call
     biteConfidenceCache[zone] = nil
 
-    FK:Debug("Bite time recorded: " .. string.format("%.1f", elapsed) .. "s in " .. zone)
 end
 
 function Stats:GetBiteConfidence(zone)
@@ -863,4 +854,3 @@ function Stats:GetItemIDFromLink(link)
     return itemID and tonumber(itemID) or nil
 end
 
-FK:Debug("Statistics module loaded")

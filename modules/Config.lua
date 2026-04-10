@@ -95,7 +95,6 @@ end
 
 function Config:Initialize()
     self:CreateConfigFrame()
-    FK:Debug("Config module initialized")
 end
 
 -- ============================================================================
@@ -1114,4 +1113,3 @@ function Config:Toggle()
     end
 end
 
-FK:Debug("Config module loaded")

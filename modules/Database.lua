@@ -1261,4 +1261,3 @@ function DB:GetQualityColor(quality)
     return colors[quality] or colors[DB.Quality.COMMON]
 end
 
-FK:Debug("Database module loaded")

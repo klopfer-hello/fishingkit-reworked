@@ -115,7 +115,6 @@ function Equip:Initialize()
     -- Rescan after a delay to catch items that weren't cached yet
     C_Timer.After(1, function()
         self:ScanEquipment()
-        FK:Debug("Equipment rescanned after delay")
     end)
 
     -- Another rescan after 3 seconds for slow loading
@@ -127,7 +126,6 @@ function Equip:Initialize()
     FK.Events:On("EQUIPMENT_CHANGED", function(slot) Equip:OnEquipmentChanged(slot) end)
     FK.Events:On("LURE_CHECK",        function() Equip:TryAutoReapplyLure() end)
 
-    FK:Debug("Equipment module initialized")
 end
 
 -- ============================================================================
@@ -191,9 +189,6 @@ function Equip:ScanEquipment()
     -- Check for lure (weapon enchant)
     self:ScanLure()
 
-    FK:Debug("Equipment scanned. Pole: " .. tostring(equipState.hasFishingPole) ..
-             ", Total Bonus: " .. equipState.totalBonus)
-
     -- Notify Statistics when pole equip state changes
     if equipState.hasFishingPole ~= prevHasPole then
         if equipState.hasFishingPole then
@@ -254,9 +249,6 @@ function Equip:ScanLure()
     FK.State.hasLure = equipState.hasLure
     FK.State.lureExpireTime = equipState.lureExpireTime
 
-    FK:Debug("Lure scanned: " .. tostring(equipState.hasLure) ..
-             ", Expires: " .. tostring(equipState.lureExpireTime) ..
-             ", Bonus: " .. tostring(equipState.lureBonus))
 end
 
 -- ============================================================================
@@ -280,10 +272,6 @@ function Equip:SaveFishingGear()
         offHand = offHand,
     }
 
-    -- Debug output to verify what was saved
-    FK:Debug("Fishing gear saved:")
-    FK:Debug("  MainHand: " .. (mainHand or "empty"))
-    FK:Debug("  OffHand: " .. (offHand or "empty"))
 end
 
 function Equip:SaveNormalGear()
@@ -331,12 +319,6 @@ function Equip:SaveNormalGear()
         offHand = offHand,
     }
 
-    FK:Debug("Normal gear saved:")
-    FK:Debug("  MainHand: " .. (mainHand or "empty"))
-    FK:Debug("  OffHand: " .. (offHand or "empty"))
-    FK:Debug("  Head: " .. (head or "empty"))
-    FK:Debug("  Hands: " .. (hands or "empty"))
-    FK:Debug("  Feet: " .. (feet or "empty"))
 end
 
 function Equip:EquipFishingGear()
@@ -473,8 +455,6 @@ function Equip:EquipNormalGear()
         return false
     end
 
-    FK:Debug("Equipping normal gear...")
-
     -- Equip main hand first
     if gear.mainHand then
         self:EquipItemByLink(gear.mainHand, SLOT_MAINHAND)
@@ -495,7 +475,6 @@ function Equip:EquipNormalGear()
     if gear.offHand then
         C_Timer.After(0.3, function()
             self:EquipItemByLink(gear.offHand, SLOT_OFFHAND)
-            FK:Debug("Equipped offhand: " .. gear.offHand)
         end)
     end
 
@@ -530,7 +509,6 @@ function Equip:EquipItemByLink(itemLink, slot)
     if equippedLink then
         local equippedID = self:GetItemIDFromLink(equippedLink)
         if equippedID and equippedID == itemID then
-            FK:Debug("Item already equipped in slot " .. slot .. ": " .. itemLink)
             return true  -- Already wearing the right item
         end
     end
@@ -551,20 +529,17 @@ function Equip:EquipItemByLink(itemLink, slot)
                     local itemName = GetItemInfo(itemLink)
                     if itemName then
                         EquipItemByName(itemName, slot)
-                        FK:Debug("Equipped: " .. itemName .. " to slot " .. slot)
                         return true
                     else
                         -- Item info not cached, try by bag link
                         itemName = GetItemInfo(bagItemLink)
                         if itemName then
                             EquipItemByName(itemName, slot)
-                            FK:Debug("Equipped (via bag): " .. itemName .. " to slot " .. slot)
                             return true
                         end
                         -- Fallback to pickup method
                         PickupContainerItem(bag, bagSlot)
                         EquipCursorItem(slot)
-                        FK:Debug("Equipped (via pickup): itemID " .. itemID .. " to slot " .. slot)
                         return true
                     end
                 end
@@ -860,4 +835,3 @@ function Equip:GetItemIDFromLink(link)
     return itemID and tonumber(itemID) or nil
 end
 
-FK:Debug("Equipment module loaded")

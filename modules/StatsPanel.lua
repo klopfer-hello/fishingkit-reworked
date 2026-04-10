@@ -1011,4 +1011,3 @@ function Stats:ToggleStatsPanel()
     end
 end
 
-FK:Debug("StatsPanel module loaded")

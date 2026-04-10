@@ -55,7 +55,6 @@ local tab = {
 -- ============================================================================
 
 function AH:Initialize()
-    FK:Debug("AuctionHouse module initialized")
 end
 
 -- ============================================================================
@@ -63,16 +62,14 @@ end
 -- ============================================================================
 
 function AH:OnAuctionHouseShow()
-    FK:Debug("AH opened")
     C_Timer.After(0.1, function()
         AH:CreateTab()
     end)
 end
 
 function AH:OnAuctionHouseClosed()
-    FK:Debug("AH closed")
     if scan.active then
-        FK:Debug("AH scan: AH closed mid-scan, aborting")
+        FK:Debug("AH scan: aborted (AH closed)")
         AH:Finish()
     end
     if tab.content then
@@ -82,7 +79,6 @@ end
 
 function AH:OnAuctionItemListUpdate()
     if scan.active and scan.waitingForResults then
-        FK:Debug("AH scan: AUCTION_ITEM_LIST_UPDATE fired, reading results")
         scan.waitingForResults = false
         AH:ReadResults()
     end
@@ -98,7 +94,6 @@ function AH:CreateTab()
         return
     end
     if tab.created then
-        FK:Debug("AH tab: already created")
         return
     end
     tab.created = true
@@ -204,7 +199,6 @@ function AH:CreateTab()
         end
     end)
 
-    FK:Debug("AH tab: created as tab #" .. newIndex)
 end
 
 -- ============================================================================
@@ -327,7 +321,6 @@ function AH:StartScan()
             end
         end
     end
-    FK:Debug("AH scan: " .. fromCatches .. " fish from catch history")
 
     if FK.Database and FK.Database.Fish then
         for itemID, fishData in pairs(FK.Database.Fish) do
@@ -339,7 +332,6 @@ function AH:StartScan()
             end
         end
     end
-    FK:Debug("AH scan: " .. fromDatabase .. " additional fish from database")
 
     -- Build ordered queue, skipping items with a fresh cached price
     scan.queue = {}
@@ -396,7 +388,6 @@ function AH:ScanNext()
     scan.currentItemID = entry.itemID
 
     if not CanSendAuctionQuery() then
-        FK:Debug("AH scan [" .. scan.currentIndex .. "/" .. #scan.queue .. "]: throttled, waiting for \"" .. entry.fishName .. "\"")
         AH:WaitForThrottle()
         return
     end
@@ -422,7 +413,6 @@ function AH:WaitForThrottle()
         end
         if CanSendAuctionQuery() then
             ticker:Cancel()
-            FK:Debug("AH scan: throttle cleared after " .. (attempts * 0.2) .. "s")
             AH:SendQuery()
         elseif attempts >= maxAttempts then
             ticker:Cancel()
@@ -443,8 +433,6 @@ function AH:SendQuery()
     local idx      = scan.currentIndex
     local fishName = scan.currentFish
     local itemID   = scan.currentItemID
-
-    FK:Debug("AH scan [" .. idx .. "/" .. #scan.queue .. "]: querying \"" .. fishName .. "\" (ID:" .. itemID .. ")")
 
     scan.waitingForResults = true
     SortAuctionSetSort("list", "unitprice")
@@ -475,7 +463,6 @@ function AH:ReadResults()
     end
 
     local numBatch, numTotal = GetNumAuctionItems("list")
-    FK:Debug("AH scan [" .. idx .. "/" .. #scan.queue .. "]: " .. numBatch .. " results (total " .. numTotal .. ") for \"" .. fishName .. "\"")
 
     local lowestBuyout = nil
     local matchCount   = 0
@@ -489,9 +476,6 @@ function AH:ReadResults()
                 if not lowestBuyout or perItem < lowestBuyout then
                     lowestBuyout = perItem
                 end
-                FK:Debug("AH scan [" .. idx .. "]:   listing #" .. i .. ": " .. name
-                    .. " x" .. count .. " buyout=" .. FK:FormatCopper(buyoutPrice)
-                    .. " per=" .. FK:FormatCopper(perItem))
             end
         end
     end
@@ -500,11 +484,8 @@ function AH:ReadResults()
     if lowestBuyout then
         FK.db.ahPrices[itemID]    = lowestBuyout
         scan.results.found        = scan.results.found + 1
-        FK:Debug("AH scan [" .. idx .. "/" .. #scan.queue .. "]: " .. fishName
-            .. " = " .. FK:FormatCopper(lowestBuyout) .. " (" .. matchCount .. " listings)")
     else
         scan.results.noListings = scan.results.noListings + 1
-        FK:Debug("AH scan [" .. idx .. "/" .. #scan.queue .. "]: " .. fishName .. " - no buyout listings")
     end
 
     AH:UpdateProgress()
@@ -537,4 +518,3 @@ function AH:Finish()
     AH:RefreshPriceList()
 end
 
-FK:Debug("AuctionHouse module loaded")

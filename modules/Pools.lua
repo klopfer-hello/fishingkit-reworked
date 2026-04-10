@@ -219,7 +219,6 @@ function Pools:Initialize()
     FK.Events:On("FISHING_LOOT_OPENED", function() Pools:RecordPoolFromCatch() end)
     FK.Events:On("ZONE_CHANGED",        function() Pools:OnZoneChanged() end)
 
-    FK:Debug("Pools module initialized")
 end
 
 function Pools:CreateScanTooltip()
@@ -313,7 +312,6 @@ function Pools:HookTooltip()
             if FK.db.settings.poolSound then
                 PlaySound(SOUNDKIT.TELL_MESSAGE or 3081)
             end
-            FK:Debug("Pool spotted: " .. text)
         end
     end)
 end
@@ -346,7 +344,6 @@ function Pools:RecordPoolFromCatch()
     if GetTime() - poolState.lastSeenPoolTime > 60 then return end
 
     self:RecordPoolLocation(poolName)
-    FK:Debug("Pool location updated from catch: " .. poolName)
 end
 
 -- ============================================================================
@@ -399,7 +396,6 @@ function Pools:RecordPoolLocation(poolName)
                 local elapsed = now - (existing.lastSeen or 0)
                 if elapsed >= 300 then
                     existing.timesSeen = (existing.timesSeen or 1) + 1
-                    FK:Debug("Pool re-sighted: " .. poolName .. " (seen " .. existing.timesSeen .. "x)")
                 end
                 existing.lastSeen = now
                 self:RefreshAllPins()
@@ -487,7 +483,6 @@ function Pools:OnPoolDetected(poolName, x, y)
             PlaySound(SOUNDKIT.TELL_MESSAGE or 3081)
         end
 
-        FK:Debug("Pool detected: " .. poolName)
     else
         poolState.nearbyPools[key].lastSeen = timestamp
     end
@@ -733,7 +728,6 @@ function Pools:InitMinimapPins()
         end
     end)
 
-    FK:Debug("Minimap pins initialized (" .. MAX_MINIMAP_PINS .. " pool)")
 end
 
 function Pools:UpdateMinimapPins()
@@ -910,7 +904,6 @@ function Pools:InitWorldMapPins()
     worldMapProvider = provider
     WorldMapFrame:AddDataProvider(provider)
 
-    FK:Debug("World map pins initialized (DataProvider)")
 end
 
 -- ============================================================================
@@ -962,16 +955,12 @@ function Pools:EnableFindFishTracking()
         return
     end
 
-    if isActive then
-        FK:Debug("Find Fish already active")
-        return
-    end
+    if isActive then return end
 
     -- Save current tracking
     local currentIdx, currentName = self:GetActiveTrackingIndex()
     if FK.chardb then
         FK.chardb.previousTracking = currentIdx
-        FK:Debug("Saved previous tracking: " .. (currentName or "none") .. " (index " .. tostring(currentIdx) .. ")")
     end
 
     -- Enable Find Fish
@@ -1224,4 +1213,3 @@ function Pools:GetNearbyPoolCount()
     return count
 end
 
-FK:Debug("Pools module loaded")

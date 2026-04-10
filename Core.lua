@@ -572,7 +572,6 @@ local function UpdateFishingSkill()
         if not isHeader and name == FK.FishingSpellName then
             FK.State.fishingSkill = rank or 0
             FK.State.fishingSkillMax = maxRank or 375
-            FK:Debug("Fishing skill: " .. FK.State.fishingSkill .. "/" .. FK.State.fishingSkillMax)
             return
         end
     end
@@ -604,8 +603,6 @@ end
 
 local function InitializeAddon()
     if FK.initialized then return end
-
-    FK:Debug("Beginning initialization...")
 
     -- Re-resolve localized names if they failed at load time (safety net)
     if not FK.FishingSpellName or FK.FishingSpellName == "Fishing" then
@@ -796,12 +793,8 @@ eventHandlers.UNIT_SPELLCAST_START = function(unit, arg2, arg3, arg4, arg5)
         if name then spellName = name end
     end
 
-    FK:Debug("SPELLCAST_START spell=" .. tostring(spellName) .. " id=" .. tostring(spellID))
-
     -- Check if this is a fishing cast (spellID is locale-independent)
     local isFishing = IsFishingSpell(arg2, arg3, arg4, arg5)
-
-    FK:Debug("isFishing=" .. tostring(isFishing) .. " FishingSpellName=" .. tostring(FK.FishingSpellName) .. " FishingSpellID=" .. tostring(FK.FishingSpellID))
 
     if isFishing then
         FK.State.castGen = (FK.State.castGen or 0) + 1
@@ -809,8 +802,6 @@ eventHandlers.UNIT_SPELLCAST_START = function(unit, arg2, arg3, arg4, arg5)
         FK.State.castStartTime = GetTime()
         FK.State.channelStarted = false  -- bobber not in water yet
         FK.State.waitingForLoot = false  -- Clear stale state from previous cast
-        FK:Debug("Fishing cast started - spell: " .. tostring(spellName) .. " gen=" .. FK.State.castGen)
-
         FK.Events:Fire("FISHING_STARTED")
     end
 end
@@ -820,7 +811,6 @@ eventHandlers.UNIT_SPELLCAST_STOP = function(unit, arg2, arg3, arg4, arg5)
 
     if IsFishingSpell(arg2, arg3, arg4, arg5) then
         -- Cast stopped (bobber is now in water or cast was cancelled)
-        FK:Debug("Fishing cast stopped (bobber deployed or cancelled)")
     end
 end
 
@@ -828,7 +818,6 @@ eventHandlers.UNIT_SPELLCAST_SUCCEEDED = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
     if IsFishingSpell(arg2, arg3, arg4, arg5) then
-        FK:Debug("Fishing cast succeeded (bobber deployed)")
         -- Sound boost and watch setup happen at CHANNEL_START (when bobber hits
         -- the water), matching BetterFishing's timing exactly.
     end
@@ -837,21 +826,18 @@ end
 eventHandlers.UNIT_SPELLCAST_FAILED = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
-    FK:Debug("SPELLCAST_FAILED isFishingCheck=" .. tostring(IsFishingSpell(arg2, arg3, arg4, arg5)))
-
     if IsFishingSpell(arg2, arg3, arg4, arg5) then
         -- Only reset if a new cast hasn't already started (castGen unchanged)
         local savedGen = FK.State.castGen
         C_Timer.After(0, function()
             if FK.State.castGen == savedGen then
                 FK.State.isFishing = false
-                FK:Debug("Fishing cast failed")
-                FK:Debug("SPELLCAST_FAILED reset isFishing=false (gen=" .. savedGen .. ")")
+                FK:Debug("Cast failed (gen=" .. savedGen .. ")")
 
                 FK.Events:Fire("FISHING_FAILED")
 
             else
-                FK:Debug("SPELLCAST_FAILED ignored (gen changed " .. savedGen .. " -> " .. FK.State.castGen .. ")")
+                FK:Debug("SPELLCAST_FAILED ignored (gen " .. savedGen .. " -> " .. FK.State.castGen .. ")")
             end
         end)
     end
@@ -859,8 +845,6 @@ end
 
 eventHandlers.UNIT_SPELLCAST_INTERRUPTED = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
-
-    FK:Debug("SPELLCAST_INTERRUPTED")
 
     if IsFishingSpell(arg2, arg3, arg4, arg5) then
         -- Only reset if a new cast hasn't already started (castGen unchanged)
@@ -873,15 +857,13 @@ eventHandlers.UNIT_SPELLCAST_INTERRUPTED = function(unit, arg2, arg3, arg4, arg5
 
                 if wasChanneling then
                     -- Bobber was in water, this is "fish got away"
-                    FK:Debug("INTERRUPTED fish got away (gen=" .. savedGen .. ")")
                     FK.Events:Fire("FISHING_MISSED")
                 else
                     -- Bobber never deployed, user cancelled during cast animation
-                    FK:Debug("INTERRUPTED user cancelled (gen=" .. savedGen .. ")")
                     FK.Events:Fire("FISHING_FAILED")
                 end
             else
-                FK:Debug("INTERRUPTED ignored (gen changed " .. savedGen .. " -> " .. FK.State.castGen .. ")")
+                FK:Debug("INTERRUPTED ignored (gen " .. savedGen .. " -> " .. FK.State.castGen .. ")")
             end
         end)
     end
@@ -890,8 +872,6 @@ end
 eventHandlers.UNIT_SPELLCAST_CHANNEL_START = function(unit, arg2, arg3, arg4, arg5)
     if unit ~= "player" then return end
 
-    FK:Debug("CHANNEL_START isFishingCheck=" .. tostring(IsFishingSpell(arg2, arg3, arg4, arg5)))
-
     -- Fishing in TBC is a channel spell (bobber has landed in the water)
     if IsFishingSpell(arg2, arg3, arg4, arg5) then
         FK.State.isFishing = true
@@ -899,9 +879,6 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_START = function(unit, arg2, arg3, arg4, ar
         FK.State.channelCastGen = FK.State.castGen  -- snapshot gen for this bobber
         -- Reset cast start time when bobber lands (handles re-cast where SPELLCAST_START may not fire)
         FK.State.castStartTime = GetTime()
-        FK:Debug("CHANNEL_START set isFishing=true castStartTime=" .. tostring(FK.State.castStartTime))
-        FK:Debug("Fishing channel started (bobber in water)")
-
         -- Boost sounds and start event watching now that the bobber is in the water.
         -- Mirrors BetterFishing: enhance at CHANNEL_START, restore at CHANNEL_STOP.
         FK.Events:Fire("BOBBER_LANDED")
@@ -919,7 +896,7 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, arg2, arg3, arg4, arg
         -- still holds the old gen, so if they differ this is a stale CHANNEL_STOP
         -- from the cancelled cast — skip everything to avoid spurious timers.
         if FK.State.channelCastGen ~= FK.State.castGen then
-            FK:Debug("CHANNEL_STOP ignored (stale re-cast, channelGen=" ..
+            FK:Debug("CHANNEL_STOP ignored (stale, channelGen=" ..
                 tostring(FK.State.channelCastGen) .. " castGen=" .. FK.State.castGen .. ")")
             return
         end
@@ -927,8 +904,6 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, arg2, arg3, arg4, arg
         -- DON'T set isFishing = false here!
         -- LOOT_OPENED needs isFishing to still be true
         -- We'll set it false in LOOT_CLOSED instead
-        FK:Debug("Fishing channel stopped (waiting for loot)")
-
         FK.Events:Fire("FISHING_BITE")
 
         -- Set a flag to know we're waiting for loot
@@ -946,18 +921,18 @@ eventHandlers.UNIT_SPELLCAST_CHANNEL_STOP = function(unit, arg2, arg3, arg4, arg
                 local isRecast = UnitChannelInfo("player") ~= nil
                 if isRecast then
                     FK.State.waitingForLoot = false
-                    FK:Debug("Timeout: re-cast detected via UnitChannelInfo, not counting miss")
+                    FK:Debug("Timeout: re-cast detected, not counting miss")
                     return
                 end
 
                 FK.State.isFishing = false
                 FK.State.castStartTime = nil
                 FK.State.waitingForLoot = false
-                FK:Debug("Fishing timeout - no loot (fish got away)")
+                FK:Debug("Timeout: fish got away (gen=" .. savedGen .. ")")
 
                 FK.Events:Fire("FISHING_MISSED")
             else
-                FK:Debug("Timeout skipped (gen changed " .. savedGen .. " -> " .. FK.State.castGen .. ")")
+                FK:Debug("Timeout skipped (gen " .. savedGen .. " -> " .. FK.State.castGen .. ")")
             end
         end)
     end
@@ -967,7 +942,6 @@ eventHandlers.LOOT_READY = function()
     -- LOOT_READY fires before auto-loot processes items, so GetNumLootItems() is reliable here.
     -- IsFishingLoot() is a Blizzard API that returns true when the loot source is a fishing bobber.
     if IsFishingLoot and IsFishingLoot() then
-        FK:Debug("LOOT_READY: fishing loot detected")
         FK.Events:Fire("FISHING_LOOT_READY")
     end
 end
@@ -975,7 +949,6 @@ end
 eventHandlers.LOOT_OPENED = function()
     -- Check if we were fishing (either still flagged or waiting for loot)
     if FK.State.isFishing or FK.State.waitingForLoot then
-        FK:Debug("Loot window opened (fishing catch!)")
         FK.State.waitingForLoot = false  -- Clear the waiting flag
 
         FK.Events:Fire("FISHING_LOOT_OPENED")
@@ -1004,26 +977,22 @@ end
 
 eventHandlers.LOOT_CLOSED = function()
     if FK.State.isFishing or FK.State.waitingForLoot then
-        FK:Debug("Loot window closed - fishing complete")
-
         -- Only reset fishing state if a new cast hasn't already started
         -- (rapid recasting via double-click can start a new cast before loot window closes)
         -- Compare current castGen against the gen saved at CHANNEL_STOP time
         -- (lootCastGen was saved BEFORE any new cast could start, so it's reliable)
         local expectedGen = FK.State.lootCastGen or FK.State.castGen
-        FK:Debug("LOOT_CLOSED expectedGen=" .. expectedGen .. " currentGen=" .. FK.State.castGen)
         if FK.State.castGen == expectedGen then
             FK.State.isFishing = false
             FK.State.castStartTime = nil
             FK.State.waitingForLoot = false
-            FK:Debug("LOOT_CLOSED reset state (gen=" .. expectedGen .. ")")
 
             FK.Events:Fire("FISHING_COMPLETE")
 
         else
             -- New cast started, just clear the waiting flag
             FK.State.waitingForLoot = false
-            FK:Debug("LOOT_CLOSED skipped reset (gen changed " .. expectedGen .. " -> " .. FK.State.castGen .. ")")
+            FK:Debug("LOOT_CLOSED skipped reset (gen " .. expectedGen .. " -> " .. FK.State.castGen .. ")")
         end
 
         -- Process catch & release auto-delete
@@ -1055,7 +1024,6 @@ eventHandlers.ZONE_CHANGED_NEW_AREA = eventHandlers.ZONE_CHANGED
 eventHandlers.CHAT_MSG_SKILL = function(msg)
     -- Check for fishing skill up message
     if msg and string.find(msg, FK.FishingSpellName) then
-        FK:Debug("Skill message: " .. msg)
         UpdateFishingSkill()
 
         FK.Events:Fire("FISHING_SKILL_UP")
@@ -1082,8 +1050,6 @@ end
 eventHandlers.PLAYER_REGEN_DISABLED = function()
     -- Entered combat
     FK.State.inCombat = true
-    FK:Debug("Entered combat")
-
     FK.Events:Fire("COMBAT_START")
 
     -- Cancel any pending swap retry from a previous combat cycle
@@ -1147,8 +1113,6 @@ end
 eventHandlers.PLAYER_REGEN_ENABLED = function()
     -- Left combat
     FK.State.inCombat = false
-    FK:Debug("Left combat")
-
     FK.Events:Fire("COMBAT_END")
 
     -- Resume fishing: restore only the fishing pole that was in mainhand before combat.
@@ -1695,4 +1659,3 @@ if ldb then
     })
 end
 
-FK:Debug("Core module loaded")

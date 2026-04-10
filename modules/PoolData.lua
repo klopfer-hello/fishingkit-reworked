@@ -903,4 +903,3 @@ FK.PoolData[1951] = {
     {name="Pure Water", x=0.637, y=0.165},
 }
 
-FK:Debug("PoolData module loaded")

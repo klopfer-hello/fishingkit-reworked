@@ -482,7 +482,6 @@ function Navigation:InsertPoolIntoRoute(newPoolIndex)
         navState.currentWaypoint = navState.currentWaypoint + 1
     end
 
-    FK:Debug("Pool inserted into route at position " .. bestPos)
 end
 
 -- ============================================================================
@@ -506,7 +505,6 @@ function Navigation:AdvanceWaypoint()
     self:UpdateArrowTexts()
     self:UpdateWorldMapRoute()
 
-    FK:Debug("Advanced to waypoint " .. navState.currentWaypoint .. "/" .. #navState.route)
 end
 
 function Navigation:SkipWaypoint()
@@ -839,7 +837,6 @@ function Navigation:DrawRouteOnWorldMap()
         end
     end
 
-    FK:Debug("DrawRoute: drew " .. #route .. " waypoints on map " .. mapID)
 end
 
 function Navigation:SetConnectionColor(connection, r, g, b, a)
@@ -871,10 +868,7 @@ function Navigation:HookWorldMap()
     if worldMapHooked then return end
     if not WorldMapFrame then FK:Debug("HookWorldMap: WorldMapFrame not available yet"); return end
 
-    FK:Debug("HookWorldMap: Hooking WorldMapFrame now")
-
     hooksecurefunc(WorldMapFrame, "Show", function()
-        FK:Debug("HookWorldMap: Show hook fired, active=" .. tostring(navState.active))
         if navState.active then
             -- Slight delay to let map finish rendering
             C_Timer.After(0.1, function()
@@ -1010,7 +1004,4 @@ function Navigation:Initialize()
     FK.Events:On("COMBAT_START", function() Navigation:OnCombatStart() end)
     FK.Events:On("COMBAT_END",   function() Navigation:OnCombatEnd() end)
 
-    FK:Debug("Navigation module initialized")
 end
-
-FK:Debug("Navigation module loaded")

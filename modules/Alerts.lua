@@ -76,7 +76,6 @@ function Alerts:Initialize()
     FK.Events:On("FISHING_COMPLETE", function() Alerts:OnFishingComplete() end)
     FK.Events:On("ZONE_CHANGED",     function() Alerts:CheckCycleFishWindows() end)
 
-    FK:Debug("Alerts module initialized")
 end
 
 -- ============================================================================
@@ -174,7 +173,6 @@ function Alerts:OnCastStart()
     alertState.watching = false
     alertState.splashDetected = false
 
-    FK:Debug("Alert: Cast started")
 end
 
 function Alerts:OnBobberLanded()
@@ -187,8 +185,6 @@ function Alerts:OnBobberLanded()
 
     self:BoostFishingSound()
     self:ShowTimer()
-
-    FK:Debug("Alert: Bobber landed, watching for catch")
 
     -- Start the fishing event watching system
     self:StartWatching()
@@ -204,14 +200,12 @@ function Alerts:OnFishingEnd()
     self:HideTimer()
     self:StopWatching()
 
-    FK:Debug("Alert: Fishing channel ended (sound will restore on complete)")
 end
 
 -- Called when fishing is truly done (loot closed or timeout).
 -- RestoreFishingSound is a no-op if not currently boosted.
 function Alerts:OnFishingComplete()
     self:RestoreFishingSound()
-    FK:Debug("Alert: Fishing complete")
 end
 
 -- ============================================================================
@@ -286,12 +280,10 @@ function Alerts:OnCatchSuccess()
         FK.UI:OnCatchSuccess()
     end
 
-    FK:Debug("Alert: Catch success!")
 end
 
 function Alerts:OnFishGotAway()
     -- Fish got away (didn't click in time or cast expired)
-    FK:Debug("Alert: Fish got away")
 end
 
 -- ============================================================================
@@ -365,7 +357,6 @@ function Alerts:BoostFishingSound()
     SetCVar("Sound_MasterVolume", tostring(scale))
 
     alertState.soundBoosted = true
-    FK:Debug("Fishing sound enhanced (scale=" .. tostring(scale) .. ")")
 end
 
 function Alerts:RestoreFishingSound()
@@ -379,7 +370,6 @@ function Alerts:RestoreFishingSound()
     end
 
     alertState.soundBoosted = false
-    FK:Debug("Fishing sound restored")
 end
 
 -- ============================================================================
@@ -476,4 +466,3 @@ function Alerts:SetScreenFlashEnabled(enabled)
     FK.db.settings.screenFlash = enabled
 end
 
-FK:Debug("Alerts module loaded")
