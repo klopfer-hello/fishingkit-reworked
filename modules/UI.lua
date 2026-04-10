@@ -1331,6 +1331,8 @@ local OPENABLE_ITEMS = {
     [24476] = "Jaggal Clam",
     -- TBC Clams
     [33567] = "Broiled Bloodfin",  -- Not a clam but openable
+    -- Bloated fish
+    [35313] = "Bloated Barbed Gill Trout",
     -- Crates and containers
     [6352]  = "Waterlogged Crate",
     [6353]  = "Small Barnacled Clam",
@@ -1368,21 +1370,43 @@ end
 -- Called from Core.lua after LOOT_CLOSED for a fishing catch.
 -- Uses UseContainerItem with staggered 0.5s delays so the server can process
 -- each open before the next one is requested.
+-- If the player is channeling (e.g. recast fishing), defers until the channel ends.
+local OPEN_RETRY_INTERVAL = 0.3
+local OPEN_MAX_RETRIES = 20  -- 6 seconds max wait
+
 function UI:AutoOpenContainers()
     local items = self:GetOpenableItems()
     if #items == 0 then return end
 
-    for i, item in ipairs(items) do
-        C_Timer.After((i - 1) * 0.5, function()
-            -- Re-verify the item is still in that bag slot (bag may have shifted)
-            local link = GetContainerItemLink(item.bag, item.slot)
-            local itemID = link and tonumber(string.match(link, "item:(%d+)"))
-            if itemID and OPENABLE_ITEMS[itemID] then
-                UseContainerItem(item.bag, item.slot)
-                FK:Debug("Auto-opened: " .. item.name .. " (bag " .. item.bag .. " slot " .. item.slot .. ")")
-            end
-        end)
+    local index = 1
+    local function OpenNext()
+        if index > #items then return end
+
+        -- If channeling (fishing recast), wait and retry
+        if UnitChannelInfo("player") then
+            local retries = (items[index]._retries or 0) + 1
+            if retries > OPEN_MAX_RETRIES then return end
+            items[index]._retries = retries
+            C_Timer.After(OPEN_RETRY_INTERVAL, OpenNext)
+            return
+        end
+
+        local item = items[index]
+        -- Re-verify the item is still in that bag slot (bag may have shifted)
+        local link = GetContainerItemLink(item.bag, item.slot)
+        local itemID = link and tonumber(string.match(link, "item:(%d+)"))
+        if itemID and OPENABLE_ITEMS[itemID] then
+            UseContainerItem(item.bag, item.slot)
+            FK:Debug("Auto-opened: " .. item.name)
+        end
+
+        index = index + 1
+        if index <= #items then
+            C_Timer.After(0.5, OpenNext)
+        end
     end
+
+    OpenNext()
 end
 
 function UI:UpdateClamButton()

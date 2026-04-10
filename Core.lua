@@ -32,6 +32,11 @@ if not GetContainerNumSlots and C_Container then
                info.hasNoValue, info.itemID, info.isBound
     end
 end
+-- UseContainerItem may not exist as a legacy global even when other container
+-- APIs do (observed on TBC Classic Anniversary). Ensure it is always available.
+if not UseContainerItem and C_Container and C_Container.UseContainerItem then
+    UseContainerItem = C_Container.UseContainerItem
+end
 
 -- Version info
 FK.VERSION = "1.2.0"
