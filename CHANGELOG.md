@@ -1,5 +1,24 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.8
+
+### Bug Fixes
+
+- **Auto-lure reapply produced "blocked by an action only available to the Blizzard UI" spam** — `TryAutoReapplyLure` used `UseContainerItem` + `UseInventoryItem(16)` to apply the weapon enchant, but applying a temporary enchant via `UseInventoryItem` is a protected action and requires a hardware event. The timer-driven call path never had one. Reworked to arm a dedicated `SecureActionButton` (`FishingKitLureSAButton`) with the `/use bag slot` + `/use 16` macro, and override `BUTTON2` via `SetOverrideBindingClick` so the player's next right-click fires the secure button. `PostClick` and a 60 s safety timer disarm the binding; `PLAYER_REGEN_DISABLED` also clears it before lockdown.
+- **Auto-lure reapplied with seconds still on the active lure** — threshold of `< 5 s remaining` was too eager. Changed to act only when the enchant has fully expired (`not GetWeaponEnchantInfo()`).
+
+### Improvements
+
+- **Audio boost now fully disables music** — previously the boost muted `Sound_MusicVolume` to 0 but left `Sound_EnableMusic` on, so WoW kept loading/unloading music tracks and the engine produced audible clicks as the volume was toggled. Added `Sound_EnableMusic` to the CVar snapshot/restore list so the music subsystem is turned off during the boost and restored afterwards.
+
+### Files Modified
+
+- `modules/Alerts.lua` (`Sound_EnableMusic` added to `soundCVarList`)
+- `modules/Equipment.lua` (`TryAutoReapplyLure` reworked to expired-only check + delegate to `FK.UI:ArmLureReapply`, no more protected API calls)
+- `modules/UI.lua` (new `UI:ArmLureReapply` helper backed by `FishingKitLureSAButton` with `PostClick`, timeout, and combat clear)
+
+---
+
 ## v1.3.7
 
 ### Bug Fixes

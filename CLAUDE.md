@@ -129,6 +129,9 @@ Key files to reference:
 | (v1.3.6) | README.md broken — `<![CDATA[` / `]]>` XML wrapper tags leaked into file content | Removed stray XML tags from README |
 | (v1.3.7) | Auto-open containers broken — `UseContainerItem` was `nil` because the C_Container shim only ran when `GetContainerNumSlots` was missing; on TBC Anniversary the other legacy globals exist but `UseContainerItem` does not | Added standalone fallback: `if not UseContainerItem and C_Container then UseContainerItem = C_Container.UseContainerItem end` |
 | (v1.3.7) | Auto-open failed during fishing recast — `UseContainerItem` silently fails when player is channeling (can't open loot window during a channel) | `AutoOpenContainers` now checks `UnitChannelInfo("player")` before each open and defers with retry until channel ends |
+| (v1.3.8) | Auto-lure reapply printed "blocked by an action only available to the Blizzard UI" — `UseContainerItem` + `UseInventoryItem(16)` applied from a `C_Timer` callback is a protected path (enchant-cursor apply needs a hardware event) | Removed direct protected calls. `TryAutoReapplyLure` arms a dedicated `FishingKitLureSAButton` (SecureActionButton) with `/use bag slot\n/use 16` macro + `SetOverrideBindingClick(BUTTON2)`. Player's next right-click fires the secure click; `PostClick`, a 60 s timer, and `PLAYER_REGEN_DISABLED` all disarm |
+| (v1.3.8) | Auto-lure reapplied when the current lure still had a few seconds remaining (threshold was `< 5 s`) | Expired-only check: act only when `not GetWeaponEnchantInfo()` |
+| (v1.3.8) | Enhanced audio boost caused music to click/fade in and out — boost muted `Sound_MusicVolume` but left `Sound_EnableMusic` on, so the music engine kept cycling | Added `Sound_EnableMusic` to `soundCVarList` so the music subsystem is disabled during boost and restored afterwards |
 
 ## Important API Behaviour (TBC Classic 2.5.5)
 

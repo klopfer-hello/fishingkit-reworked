@@ -625,45 +625,28 @@ function Equip:ApplyLure(lureBag, lureSlot)
 end
 
 -- Called after LOOT_CLOSED. If autoLureReapply is enabled and the fishing
--- pole has no active lure (or lure expires within 5 s), apply the best lure
--- from the player's bags via UseContainerItem (shimmed to C_Container in Core).
+-- pole's lure has fully expired, arm a secure action button so the player's
+-- next right-click applies the lure. Cannot apply programmatically: the item
+-- APIs required (UseContainerItem + UseInventoryItem on an equipped slot for
+-- the enchant cursor) are protected and print "blocked by Blizzard UI" when
+-- invoked from non-hardware event paths.
 function Equip:TryAutoReapplyLure()
     if not FK.db.settings.autoLureReapply then return end
     if InCombatLockdown() then return end
     if not equipState.hasFishingPole then return end
 
-    -- Check current lure status
-    local hasMainHandEnchant, mainHandExpiration = GetWeaponEnchantInfo()
-    local lureAboutToExpire = hasMainHandEnchant and mainHandExpiration and
-                              (mainHandExpiration / 1000) < 5
-
-    if hasMainHandEnchant and not lureAboutToExpire then
-        -- Lure active and not about to expire — nothing to do
-        return
-    end
+    -- Only act when the enchant has fully expired — don't replace a lure
+    -- that still has time on it.
+    local hasMainHandEnchant = GetWeaponEnchantInfo()
+    if hasMainHandEnchant then return end
 
     local bestLure = self:GetBestAvailableLure()
     if not bestLure then return end
 
-    -- Step 1: activate the lure (puts enchant cursor on screen)
-    UseContainerItem(bestLure.bag, bestLure.slot)
-
-    -- Step 2: apply the cursor to the fishing pole (mainhand slot).
-    -- Mirrors the secure Lure button macro: "/use bag slot\n/use 16"
-    -- Small delay so the enchant cursor is ready before we target the slot.
-    C_Timer.After(0.1, function()
-        if not InCombatLockdown() then
-            UseInventoryItem(SLOT_MAINHAND)
-        end
-    end)
-
-    FK:Print("Auto-applied lure: " .. FK.Colors.highlight .. bestLure.name .. "|r (+" .. bestLure.bonus .. ")", FK.Colors.success)
-    FK:Debug("TryAutoReapplyLure: used " .. bestLure.name .. " from bag=" .. bestLure.bag .. " slot=" .. bestLure.slot)
-
-    -- Rescan after a short delay so lure timer updates
-    C_Timer.After(0.5, function()
-        self:ScanLure()
-    end)
+    if FK.UI and FK.UI.ArmLureReapply then
+        FK.UI:ArmLureReapply(bestLure)
+        FK:Debug("TryAutoReapplyLure: armed " .. bestLure.name .. " from bag=" .. bestLure.bag .. " slot=" .. bestLure.slot)
+    end
 end
 
 function Equip:SuggestLure()

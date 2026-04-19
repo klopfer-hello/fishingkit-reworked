@@ -2071,6 +2071,68 @@ function UI:SetupDoubleClickCast()
 
 end
 
+-- ============================================================================
+-- Auto-Lure Reapply (secure button)
+-- ============================================================================
+-- Called by Equipment:TryAutoReapplyLure when the lure has expired. Cannot
+-- use UseContainerItem/UseInventoryItem to apply the enchant — those are
+-- protected and require a hardware event. Instead, arm a dedicated secure
+-- action button with the lure macro and override BUTTON2 to fire it on the
+-- player's next right-click. PostClick clears the binding so subsequent
+-- right-clicks cast fishing as normal.
+
+local lureSABtn = nil
+local lureGuardFrame = nil
+local lureArmGen = 0
+local LURE_ARM_TIMEOUT = 60  -- seconds; auto-disarm if the player never clicks
+
+local function ClearLureArm()
+    if not lureSABtn then return end
+    ClearOverrideBindings(lureSABtn)
+    lureSABtn:SetAttribute("type", nil)
+    lureSABtn:SetAttribute("macrotext", nil)
+    lureArmGen = lureArmGen + 1
+end
+
+local function GetLureSAButton()
+    if lureSABtn then return lureSABtn end
+    lureSABtn = CreateFrame("Button", "FishingKitLureSAButton", UIParent, "SecureActionButtonTemplate")
+    lureSABtn:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, 0)
+    lureSABtn:SetFrameStrata("LOW")
+    lureSABtn:SetSize(1, 1)
+    lureSABtn:Show()
+    lureSABtn:RegisterForClicks("RightButtonDown")
+    lureSABtn:SetScript("PostClick", ClearLureArm)
+
+    lureGuardFrame = CreateFrame("Frame")
+    lureGuardFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+    lureGuardFrame:SetScript("OnEvent", function()
+        if not InCombatLockdown() then ClearLureArm() end
+    end)
+
+    return lureSABtn
+end
+
+function UI:ArmLureReapply(lure)
+    if InCombatLockdown() then return end
+    if not lure or not lure.bag or not lure.slot then return end
+
+    local btn = GetLureSAButton()
+    btn:SetAttribute("type", "macro")
+    btn:SetAttribute("macrotext", "/use " .. lure.bag .. " " .. lure.slot .. "\n/use 16")
+    SetOverrideBindingClick(btn, true, "BUTTON2", "FishingKitLureSAButton")
+    lureArmGen = lureArmGen + 1
+    local myGen = lureArmGen
+
+    C_Timer.After(LURE_ARM_TIMEOUT, function()
+        if lureArmGen == myGen and not InCombatLockdown() then
+            ClearLureArm()
+        end
+    end)
+
+    FK:Print("Next right-click will apply lure: " .. FK.Colors.highlight .. lure.name .. "|r (+" .. lure.bonus .. ")", FK.Colors.info)
+end
+
 -- No-ops for any leftover calls in Core.lua
 function UI:ExtendDoubleClick() end
 function UI:OnFishingLootClosed() end

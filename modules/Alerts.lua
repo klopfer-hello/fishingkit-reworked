@@ -38,6 +38,7 @@ local soundCVarList = {
     "Sound_SFXVolume",
     "Sound_EnableAmbience",
     "Sound_MusicVolume",
+    "Sound_EnableMusic",
     "Sound_EnableAllSound",
     "Sound_EnablePetSounds",
     "Sound_EnableSoundWhenGameIsInBG",
