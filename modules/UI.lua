@@ -646,13 +646,6 @@ function UI:CreateButtons()
     fishBtn:SetAttribute("type1", "macro")
     fishBtn:SetAttribute("macrotext1", "/cast " .. (FK.FishingSpellName or "Fishing"))
 
-    -- Fishing skill text ABOVE the button
-    local fishSkillText = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    fishSkillText:SetPoint("BOTTOM", fishBtn, "TOP", 0, 2)
-    fishSkillText:SetText("")
-    fishSkillText:SetTextColor(0.5, 0.8, 1.0)
-    frame.fishSkillText = fishSkillText
-
     -- "2x" overlay on Fish button icon (shown when double-click casting is enabled)
     local dcOverlay = fishBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     dcOverlay:SetPoint("BOTTOMRIGHT", fishBtn, "BOTTOMRIGHT", -1, 1)
@@ -706,13 +699,6 @@ function UI:CreateButtons()
     -- Use type1/macrotext1 for left-click (TBC format)
     lureBtn:SetAttribute("type1", "macro")
     lureBtn:SetAttribute("macrotext1", "")
-
-    -- Lure timer text ABOVE the button
-    local lureTimer = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    lureTimer:SetPoint("BOTTOM", lureBtn, "TOP", 0, 2)
-    lureTimer:SetText("")
-    lureTimer:SetTextColor(1, 0.8, 0)
-    frame.lureTimer = lureTimer
 
     lureBtn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -905,11 +891,6 @@ function UI:UpdatePanel()
     maxSkill = maxSkill or 375
     frame.skillText:SetText(skill .. " / " .. maxSkill)
 
-    -- Update skill text above Fish button
-    if frame.fishSkillText then
-        frame.fishSkillText:SetText(tostring(skill))
-    end
-
     local barWidth = frame.skillBarBg:GetWidth() - 2
     local progress = maxSkill > 0 and (skill / maxSkill) or 0
     frame.skillBar:SetWidth(math.max(1, barWidth * progress))
@@ -969,7 +950,7 @@ function UI:UpdatePanel()
             rateColor = "|cFFFF0000"  -- Red
         end
 
-        frame.zoneSkill:SetText("Req: " .. skillColor .. minSkill .. "|r | 100%: " .. getawayColor .. noGetaway .. "|r | " .. rateColor .. catchRate .. "%|r")
+        frame.zoneSkill:SetText("Req: " .. skillColor .. minSkill .. "|r | No Escape: " .. getawayColor .. noGetaway .. "|r | " .. rateColor .. catchRate .. "%|r")
         -- Check for seasonal and time-of-day fish in this zone
         if frame.seasonalNote then
             local notesParts = {}
@@ -1056,39 +1037,23 @@ function UI:UpdatePanel()
             local lureProgress = remaining / maxDuration
             frame.lureBar:SetWidth(math.max(1, lureBarWidth * lureProgress))
 
-            -- Update lure timer above button
-            if frame.lureTimer then
-                local mins = math.floor(remaining / 60)
-                local secs = math.floor(remaining % 60)
-                frame.lureTimer:SetText(string.format("%d:%02d", mins, secs))
-
-                -- Color based on time remaining
-                if remaining < 30 then
-                    frame.lureTimer:SetTextColor(1, 0.2, 0.2)  -- Red
-                    frame.lureBar:SetColorTexture(1.0, 0.2, 0.2, 1)
-                elseif remaining < 60 then
-                    frame.lureTimer:SetTextColor(1, 0.6, 0.2)  -- Orange
-                    frame.lureBar:SetColorTexture(1.0, 0.6, 0.2, 1)
-                else
-                    frame.lureTimer:SetTextColor(0.2, 1, 0.2)  -- Green
-                    frame.lureBar:SetColorTexture(0.8, 0.6, 0.2, 1)
-                end
+            -- Color the bar based on time remaining
+            if remaining < 30 then
+                frame.lureBar:SetColorTexture(1.0, 0.2, 0.2, 1)
+            elseif remaining < 60 then
+                frame.lureBar:SetColorTexture(1.0, 0.6, 0.2, 1)
+            else
+                frame.lureBar:SetColorTexture(0.8, 0.6, 0.2, 1)
             end
         else
             frame.lureStatus:SetText("Expired!")
             frame.lureStatus:SetTextColor(1.0, 0.2, 0.2)
             frame.lureBar:SetWidth(1)
-            if frame.lureTimer then
-                frame.lureTimer:SetText("|cFFFF0000EXPIRED|r")
-            end
         end
     else
         frame.lureStatus:SetText("None")
         frame.lureStatus:SetTextColor(0.5, 0.5, 0.5)
         frame.lureBar:SetWidth(1)
-        if frame.lureTimer then
-            frame.lureTimer:SetText("")  -- No lure active, hide timer
-        end
     end
 
     -- Update contest panel (panel runs at 1 Hz; UpdateContestPanel is cheap)

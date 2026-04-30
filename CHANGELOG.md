@@ -1,5 +1,18 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.9
+
+### Bug Fixes
+
+- **Lure progress bar overlapped the labels above the action buttons** — the LURE row's progress bar lives directly above the action button row, and two duplicate labels (`fishSkillText` "375" above the Fish button, `lureTimer` "9:54" above the Lure button) were anchored 2 px above their buttons, landing right on top of the bar. Removed both labels — the same data is already shown in the SKILL row (`375 / 375`) and LURE row (`9m 54s (+100)`) higher up in the panel. Bar color (green / orange / red as the lure expires) is preserved.
+- **Zone catch-rate label was misleading** — the line displayed `Req: 355 | 100%: 450 | 100%`, where the middle "100%" meant "skill above which no bitten fish escapes". Users were reading it as "100% catch rate at 450 skill" and comparing it to the session `Rate` stat — but `Rate` is `catches / casts` and includes bobber timeouts, missed clicks, dazes, and other non-skill losses, so the two numbers measure different things. Relabeled to `No Escape: 450` so the threshold's meaning is unambiguous.
+
+### Files Modified
+
+- `modules/UI.lua` (removed `frame.fishSkillText` and `frame.lureTimer` and their `UpdatePanel` writers; kept lure-bar color updates; relabeled `100%:` to `No Escape:` in the zone line)
+
+---
+
 ## v1.3.8
 
 ### Bug Fixes
