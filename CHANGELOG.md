@@ -1,5 +1,11 @@
 # Extreme FishingKit - TBC Anniversary Edition - Changelog
 
+## v1.3.10
+
+### Changed
+
+- **TBC Anniversary 2.5.6 compatibility** — bumped the `.toc` interface version to `20506` so the addon is no longer flagged out of date on patch 2.5.6. No functional changes.
+
 ## v1.3.9
 
 ### Bug Fixes

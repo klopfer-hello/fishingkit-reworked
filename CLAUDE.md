@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Extreme FishingKit is a World of Warcraft addon for **TBC Classic Anniversary** (interface version 20504/20505, game version 2.5.5). It provides fishing quality-of-life features: session statistics, catch tracking, fishing alerts, gear/lure management, and pool location recording.
+Extreme FishingKit is a World of Warcraft addon for **TBC Classic Anniversary** (interface version 20506, game version 2.5.6). It provides fishing quality-of-life features: session statistics, catch tracking, fishing alerts, gear/lure management, and pool location recording.
 
 The addon uses a global namespace `FK` (also `FishingKit`) populated via the addon vararg `local ADDON_NAME, FK = ...`.
 
@@ -135,7 +135,7 @@ Key files to reference:
 | (v1.3.9) | Lure progress bar overlapped the duplicate "skill" / "lure timer" labels positioned above the Fish and Lure action buttons | Removed `frame.fishSkillText` and `frame.lureTimer` (and their `UpdatePanel` writers) — the same data is already shown in the SKILL row (`375 / 375`) and LURE row (`9m 54s (+100)`); bar color logic preserved |
 | (v1.3.9) | Zone line label `100%: 450` was misleading — users read it as "100% catch rate at 450 skill" and compared it to the session `Rate` stat (catches/casts, includes timeouts/missed clicks) | Relabeled to `No Escape: 450` to make it clear the threshold is the skill above which bitten fish stop escaping, not an overall catch rate |
 
-## Important API Behaviour (TBC Classic 2.5.5)
+## Important API Behaviour (TBC Classic 2.5.6)
 
 - `GetLootSlotInfo(slot)` → `texture, name, count, quality, locked` (5 values)
 - `GetLootSlotLink(slot)` → item hyperlink string
