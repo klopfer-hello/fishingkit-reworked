@@ -2049,10 +2049,16 @@ end
 local lureSABtn = nil
 local lureGuardFrame = nil
 local lureArmGen = 0
+local lureClearPending = false
 local LURE_ARM_TIMEOUT = 60  -- seconds; auto-disarm if the player never clicks
 
 local function ClearLureArm()
     if not lureSABtn then return end
+    if InCombatLockdown() then
+        lureClearPending = true
+        return
+    end
+    lureClearPending = false
     ClearOverrideBindings(lureSABtn)
     lureSABtn:SetAttribute("type", nil)
     lureSABtn:SetAttribute("macrotext", nil)
@@ -2071,8 +2077,9 @@ local function GetLureSAButton()
 
     lureGuardFrame = CreateFrame("Frame")
     lureGuardFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-    lureGuardFrame:SetScript("OnEvent", function()
-        if not InCombatLockdown() then ClearLureArm() end
+    lureGuardFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    lureGuardFrame:SetScript("OnEvent", function(_, event)
+        if event == "PLAYER_REGEN_DISABLED" or lureClearPending then ClearLureArm() end
     end)
 
     return lureSABtn
@@ -2087,10 +2094,11 @@ function UI:ArmLureReapply(lure)
     btn:SetAttribute("macrotext", "/use " .. lure.bag .. " " .. lure.slot .. "\n/use 16")
     SetOverrideBindingClick(btn, true, "BUTTON2", "FishingKitLureSAButton")
     lureArmGen = lureArmGen + 1
+    lureClearPending = false
     local myGen = lureArmGen
 
     C_Timer.After(LURE_ARM_TIMEOUT, function()
-        if lureArmGen == myGen and not InCombatLockdown() then
+        if lureArmGen == myGen then
             ClearLureArm()
         end
     end)

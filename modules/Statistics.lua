@@ -16,6 +16,9 @@ local ADDON_NAME, FK = ...
 FK.Statistics = {}
 local Stats = FK.Statistics
 
+-- Resolved casts in this session; a late loot window can correct a timeout.
+local castOutcomes = {}
+
 -- Current session tracking
 local sessionData = {
     startTime = 0,
@@ -60,11 +63,10 @@ function Stats:Initialize()
     end
 
     -- Subscribe to fishing events
-    FK.Events:On("FISHING_LOOT_READY",  function() Stats:OnLootReady() end)
+    FK.Events:On("FISHING_LOOT_READY",  function(gen) Stats:OnLootReady(gen) end)
     FK.Events:On("FISHING_LOOT_OPENED", function() Stats:RecordBiteTime() end)
-    FK.Events:On("FISHING_COMPLETE",     function() Stats:OnLootClosed() end)
-    FK.Events:On("FISHING_MISSED",      function() Stats:OnLootClosed(); Stats:OnCastStart() end)
-    FK.Events:On("FISHING_FAILED",      function() Stats:OnCastFailed() end)
+    FK.Events:On("FISHING_LOOT_CLOSED", function() Stats:OnLootClosed() end)
+    FK.Events:On("FISHING_MISSED",      function(gen) Stats:OnCastMissed(gen) end)
     FK.Events:On("FISHING_SKILL_UP",    function() Stats:OnSkillUp() end)
     FK.Events:On("SESSION_ENDING",      function() Stats:SaveSession() end)
 
@@ -137,8 +139,17 @@ function Stats:UndoCastCount()
 
 end
 
+function Stats:OnCastMissed(castGen)
+    if not FK.db.settings.trackStats then return end
+    castGen = castGen or FK.State.castGen
+    if castOutcomes[castGen] then return end
+    castOutcomes[castGen] = "missed"
+    self:OnCastStart()
+    self:OnCastFailed()
+end
+
 function Stats:OnCastFailed()
-    -- Fish got away or cast failed
+    if not FK.db.settings.trackStats then return end
     sessionData.gotAway = sessionData.gotAway + 1
 
     if FK.chardb and FK.chardb.stats then
@@ -151,32 +162,37 @@ end
 -- Loot Tracking
 -- ============================================================================
 
--- Take a snapshot of all bag contents before loot is picked up.
--- Called from CHANNEL_STOP so the baseline is always captured before auto-loot runs.
-function Stats:OnLootReady()
+-- Read the fishing loot window before auto-loot removes its contents.
+function Stats:OnLootReady(castGen)
     -- LOOT_READY fires before auto-loot processes items, so GetNumLootItems() is reliable.
     -- Called only when IsFishingLoot() is true (checked in Core.lua).
     -- Guard: LOOT_READY can fire twice for the same loot window (once for data-ready,
-    -- once for auto-loot). Flag is cleared in OnLootClosed / FISHING_MISSED.
+    -- once for auto-loot). Only closing that loot window clears the flag.
     if not FK.db.settings.trackStats then return end
 
     if self._lootProcessed then
         FK:Debug("OnLootReady: already processed this loot window, skipping")
         return
     end
-    self._lootProcessed = true
-
     local numItems = GetNumLootItems()
     if numItems == 0 then
         FK:Debug("OnLootReady: no loot items")
         return
     end
 
-    -- Count one cast for this loot event (successful resolution).
-    -- Casts are only counted here (catch) or in the CHANNEL_STOP 1s timeout (miss)
-    -- so that re-casts — where the old bobber is cancelled before it resolves —
-    -- are never counted.
-    self:OnCastStart()
+    self._lootProcessed = true
+    castGen = castGen or FK.State.castGen
+    if not castOutcomes[castGen] then
+        self:OnCastStart()
+    elseif castOutcomes[castGen] == "missed" then
+        -- Loot can arrive after the no-loot timeout. It is still one cast,
+        -- and an actual catch must not remain counted as a fish that got away.
+        sessionData.gotAway = math.max(0, sessionData.gotAway - 1)
+        if FK.chardb and FK.chardb.stats then
+            FK.chardb.stats.totalGotAway = math.max(0, (FK.chardb.stats.totalGotAway or 0) - 1)
+        end
+    end
+    castOutcomes[castGen] = "caught"
 
     for i = 1, numItems do
         local texture, name, count, quality = GetLootSlotInfo(i)
@@ -416,6 +432,7 @@ function Stats:SaveSession()
 end
 
 function Stats:ResetSession()
+    wipe(castOutcomes)
     sessionData = {
         startTime = GetTime(),
         casts = 0,

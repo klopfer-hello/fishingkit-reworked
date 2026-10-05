@@ -672,17 +672,22 @@ function Navigation:OnPoolDiscovered(poolData)
     local uiMapID = C_Map.GetBestMapForUnit("player")
     if uiMapID ~= navState.currentMapID then return end
 
-    -- Refresh pool list reference (Pools.lua may have added to the array)
-    local pools = FK.Pools:GetPoolLocationsForMap(uiMapID)
-    navState.routePools = pools
-
-    -- Find the new pool's index (it's the last one added)
-    local newIdx = #pools
-
-    -- Check if it's already in our route
-    for _, idx in ipairs(navState.route) do
-        if idx == newIdx then return end
+    -- Keep indices tied to the filtered route array built by BuildRoute.
+    -- The discovery callback supplies the actual pool, which need not be the
+    -- last entry in storage when another discovery arrives first.
+    if not poolData then return end
+    local hideCommunity = FK.db and FK.db.settings and not FK.db.settings.showCommunityPools
+    if hideCommunity and FK.Pools.IsStaticPool and FK.Pools:IsStaticPool(poolData) then return end
+    local belongsToMap = false
+    for _, pool in ipairs(FK.Pools:GetPoolLocationsForMap(uiMapID)) do
+        if pool == poolData then belongsToMap = true; break end
     end
+    if not belongsToMap then return end
+    for _, pool in ipairs(navState.routePools) do
+        if pool == poolData then return end
+    end
+    local newIdx = #navState.routePools + 1
+    navState.routePools[newIdx] = poolData
 
     -- Insert using cheapest-insertion
     self:InsertPoolIntoRoute(newIdx)

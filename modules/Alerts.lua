@@ -75,6 +75,7 @@ function Alerts:Initialize()
     FK.Events:On("FISHING_MISSED",   function() Alerts:OnFishingComplete() end)
     FK.Events:On("FISHING_FAILED",   function() Alerts:OnFishingComplete() end)
     FK.Events:On("FISHING_COMPLETE", function() Alerts:OnFishingComplete() end)
+    FK.Events:On("SESSION_ENDING",   function() Alerts:RestoreFishingSound() end)
     FK.Events:On("ZONE_CHANGED",     function() Alerts:CheckCycleFishWindows() end)
 
 end
